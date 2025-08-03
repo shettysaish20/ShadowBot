@@ -1,0 +1,438 @@
+"{
+  "page_structure": {
+    "total_interactive_elements": 47,
+    "categories": {
+      "navigation": 16,
+      "forms": 21,
+      "buttons": 10
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "content": "Inkers Observance | AI Based Construction Management Platform"
+    },
+    {
+      "type": "text",
+      "content": "[logo]"
+    },
+    {
+      "type": "interactive",
+      "element_type": "nav_link",
+      "id": 1,
+      "text": "Home",
+      "action": "click_element_by_index",
+      "category": "navigation"
+    },
+    {
+      "type": "interactive",
+      "element_type": "nav_link",
+      "id": 2,
+      "text": "About",
+      "action": "click_element_by_index",
+      "category": "navigation"
+    },
+    {
+      "type": "interactive",
+      "element_type": "button",
+      "id": 3,
+      "text": "Product",
+      "action": "hover item, not implemented yet",
+      "category": "button"
+    },
+    {
+      "type": "interactive",
+      "element_type": "button",
+      "id": 4,
+      "text": "Services",
+      "action": "hover item, not implemented yet",
+      "category": "button"
+    },
+    {
+      "type": "interactive",
+      "element_type": "nav_link",
+      "id": 5,
+      "text": "Team",
+      "action": "click_element_by_index",
+      "category": "navigation"
+    },
+    {
+      "type": "interactive",
+      "element_type": "nav_link",
+      "id": 6,
+      "text": "Pricing",
+      "action": "click_element_by_index",
+      "category": "navigation"
+    },
+    {
+      "type": "interactive",
+      "element_type": "nav_link",
+      "id": 7,
+      "text": "Contact",
+      "action": "click_element_by_index",
+      "category": "navigation"
+    },
+    {
+      "type": "interactive",
+      "element_type": "nav_link",
+      "id": 8,
+      "text": "Demo",
+      "action": "click_element_by_index",
+      "category": "navigation"
+    },
+    {
+      "type": "interactive",
+      "element_type": "button",
+      "id": 9,
+      "text": "Toggle theme",
+      "action": "click_element_by_index",
+      "category": "button"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "If you can't measure it, you can't improve it."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Observance measures, while you construct!"
+    },
+    {
+      "type": "interactive",
+      "element_type": "nav_link",
+      "id": 10,
+      "text": "Owners",
+      "action": "click_element_by_index",
+      "category": "navigation"
+    },
+    {
+      "type": "interactive",
+      "element_type": "nav_link",
+      "id": 11,
+      "text": "Contractors",
+      "action": "click_element_by_index",
+      "category": "navigation"
+    },
+    {
+      "type": "interactive",
+      "element_type": "nav_link",
+      "id": 12,
+      "text": "Architects",
+      "action": "click_element_by_index",
+      "category": "navigation"
+    },
+    {
+      "type": "text",
+      "content": "rely on Observance."
+    },
+    {
+      "type": "interactive",
+      "element_type": "nav_link",
+      "id": 14,
+      "text": "Request a demo (cta-demo-button)",
+      "action": "click_element_by_index",
+      "category": "navigation"
+    },
+    {
+      "type": "text",
+      "content": "[Request a demo \u2192]"
+    },
+    {
+      "type": "text",
+      "content": "Enter fullscreen"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Main Features"
+    },
+    {
+      "type": "text",
+      "content": "Our Core Features"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "4D BIM (BIM with Timelines)"
+    },
+    {
+      "type": "paragraph",
+      "content": "Integrates the construction process with precise 2D and 3D measurements linked to project timelines, ensuring detailed documentation of all construction stages and progress tracking."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Snag List"
+    },
+    {
+      "type": "paragraph",
+      "content": "Highlights clashes and deviations with color-coded 3D textures mapped onto building surfaces, using AI-powered snag lists for efficient tracking."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Project Milestones"
+    },
+    {
+      "type": "paragraph",
+      "content": "Facilitates automated tracking of deliverables, quantities, timelines, and traceability from requirements to solutions."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Scan to BIM"
+    },
+    {
+      "type": "paragraph",
+      "content": "Converts point cloud data into Revit models for structural, architectural, and MEP disciplines, offering tailored Scan-to-BIM solutions."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Thermals Analytics"
+    },
+    {
+      "type": "paragraph",
+      "content": "Incorporates thermal texture models to analyze moisture levels, proactively addressing potential issues and enhancing project quality."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Deviation Analysis"
+    },
+    {
+      "type": "paragraph",
+      "content": "Compares as-built 3D models with BIM designs, using a distance texture with color gradients to identify and highlight deviations."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Our Customers"
+    },
+    {
+      "type": "text",
+      "content": "[Military Engineer Services]"
+    },
+    {
+      "type": "text",
+      "content": "[Sterling and Wilson]"
+    },
+    {
+      "type": "text",
+      "content": "[Precision Surveys]"
+    },
+    {
+      "type": "text",
+      "content": "[Raynet Xpert]"
+    },
+    {
+      "type": "text",
+      "content": "[MICD]"
+    },
+    {
+      "type": "text",
+      "content": "[Brigade Group]"
+    },
+    {
+      "type": "text",
+      "content": "[Prestige Group]"
+    },
+    {
+      "type": "text",
+      "content": "[Hyatt Centric]"
+    },
+    {
+      "type": "text",
+      "content": "[Design Fluid]"
+    },
+    {
+      "type": "text",
+      "content": "[Pidilite]"
+    },
+    {
+      "type": "text",
+      "content": "[GHR Infra]"
+    },
+    {
+      "type": "text",
+      "content": "[Sobha]"
+    },
+    {
+      "type": "text",
+      "content": "[UKn Properties]"
+    },
+    {
+      "type": "text",
+      "content": "[GMR Group]"
+    },
+    {
+      "type": "text",
+      "content": "[Icon Group]"
+    },
+    {
+      "type": "text",
+      "content": "[nhance]"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Projects with Colliers"
+    },
+    {
+      "type": "text",
+      "content": "[Divyasree]"
+    },
+    {
+      "type": "text",
+      "content": "[Embassy]"
+    },
+    {
+      "type": "text",
+      "content": "[Puravankara]"
+    },
+    {
+      "type": "text",
+      "content": "[Godrej]"
+    },
+    {
+      "type": "text",
+      "content": "[Bagmane]"
+    },
+    {
+      "type": "text",
+      "content": "[The Botanika]"
+    },
+    {
+      "type": "text",
+      "content": "[Fortius Infra]"
+    },
+    {
+      "type": "text",
+      "content": "[Manyata]"
+    },
+    {
+      "type": "text",
+      "content": "[Brookefield]"
+    },
+    {
+      "type": "text",
+      "content": "[Ozone]"
+    },
+    {
+      "type": "text",
+      "content": "[Koncept Ambience]"
+    },
+    {
+      "type": "text",
+      "content": "[Srijan]"
+    },
+    {
+      "type": "text",
+      "content": "[Ashirwad]"
+    },
+    {
+      "type": "text",
+      "content": "[Featherlite]"
+    },
+    {
+      "type": "text",
+      "content": "[Elington]"
+    },
+    {
+      "type": "text",
+      "content": "[Vega City]"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Automated Milestones and Scheduling"
+    },
+    {
+      "type": "paragraph",
+      "content": "Witness the ease of tracking, managing, and executing construction projects like never before. No BIM? No problem! Observance can still craft your project milestones and schedule tracking with impeccable precision. Remember, with us, BIM is an option, not an obligation. BIM or not, we've got your analytics covered!"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Real-time Tracking"
+    },
+    {
+      "type": "paragraph",
+      "content": "Monitor construction progress in real-time with automated milestone tracking and instant updates."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Smart Scheduling"
+    },
+    {
+      "type": "paragraph",
+      "content": "AI-powered scheduling optimization that adapts to your project's unique requirements."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "BIM Integration"
+    },
+    {
+      "type": "paragraph",
+      "content": "Seamlessly integrate with existing BIM models or work independently with our advanced tracking system."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Analytics Dashboard"
+    },
+    {
+      "type": "paragraph",
+      "content": "Comprehensive analytics and insights to make data-driven decisions for your construction projects."
+    },
+    {
+      "type": "text",
+      "content": "about-image-dark-0"
+    },
+    {
+      "type": "text",
+      "content": "about-image-dark-1"
+    },
+    {
+      "type": "text",
+      "content": "about-image-dark-2"
+    },
+    {
+      "type": "text",
+      "content": "about-image-dark-3"
+    },
+    {
+      "type": "text",
+      "content": "about-image-dark-4"
+    },
+    {
+      "type": "text",
+      "content": "about-image-dark-5"
+    },
+    {
+      "type": "text",
+      "content": "about-image-dark-6"
+    },
+    {
+      "type": "text",
+      "content": "about-image-dark-7"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Next Generation Construction AI"
+    },
+    {
+      "type": "paragraph",
+      "content": "Transform construction data into actionable insights with advanced analytics for informed decisions."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": "Defects AI"
+    },
+    {
+      "…

@@ -1,0 +1,357 @@
+"WebArea Inkers Observance | AI Based Construction Management Platform
+link logo
+link Home
+link About
+text Product
+text Services
+link Team
+link Pricing
+link Contact
+link Demo
+button Toggle theme
+text construct
+text construct
+text construct
+text measure
+text measure
+text measure
+text improve
+text improve
+text improve
+heading If you can't measure it, you can't improve it.
+heading Observance measures, while you construct!
+text Learn how
+link Owners
+text ,
+link Contractors
+text and
+link Architects
+text rely on Observance.
+button Request a demo →
+link Request a demo →
+button Enter fullscreen
+button Unmute video
+heading Main Features
+text Our Core Features
+heading 4D BIM (BIM with Timelines)
+text Integrates the construction process with precise 2D and 3D measurements linked to project timelines, ensuring detailed documentation of all construction stages and progress tracking.
+heading Snag List
+text Highlights clashes and deviations with color-coded 3D textures mapped onto building surfaces, using AI-powered snag lists for efficient tracking.
+heading Project Milestones
+text Facilitates automated tracking of deliverables, quantities, timelines, and traceability from requirements to solutions.
+heading Scan to BIM
+text Converts point cloud data into Revit models for structural, architectural, and MEP disciplines, offering tailored Scan-to-BIM solutions.
+heading Thermals Analytics
+text Incorporates thermal texture models to analyze moisture levels, proactively addressing potential issues and enhancing project quality.
+heading Deviation Analysis
+text Compares as-built 3D models with BIM designs, using a distance texture with color gradients to identify and highlight deviations.
+heading Our Customers
+link GMR Group
+link Sobha
+link Raynet Xpert
+link UKn Properties
+link Icon Group
+link Sterling and Wilson
+link MICD
+link nhance
+link Precision Surveys
+link Prestige Group
+link Brigade Group
+link GHR Infra
+link MICD
+link Pidilite
+link Hyatt Centric
+link Military Engineer Services
+link Design Fluid
+link GMR Group
+link Sobha
+link Raynet Xpert
+link UKn Properties
+link Icon Group
+link Sterling and Wilson
+link MICD
+link nhance
+link Precision Surveys
+link Prestige Group
+link Brigade Group
+link GHR Infra
+link MICD
+link Pidilite
+link Hyatt Centric
+link Military Engineer Services
+link Design Fluid
+link GMR Group
+link Sobha
+link Raynet Xpert
+link UKn Properties
+link Icon Group
+link Sterling and Wilson
+link MICD
+link nhance
+link Precision Surveys
+link Prestige Group
+link Brigade Group
+link GHR Infra
+link MICD
+link Pidilite
+link Hyatt Centric
+link Military Engineer Services
+link Design Fluid
+link GMR Group
+link Sobha
+link Raynet Xpert
+link UKn Properties
+link Icon Group
+link Sterling and Wilson
+link MICD
+link nhance
+link Precision Surveys
+link Prestige Group
+link Brigade Group
+link GHR Infra
+link MICD
+link Pidilite
+link Hyatt Centric
+link Military Engineer Services
+link Design Fluid
+heading Projects with Colliers
+link Divyasree
+link Embassy
+link Puravankara
+link Godrej
+link Bagmane
+link The Botanika
+link Fortius Infra
+link Manyata
+link Brookefield
+link Ozone
+link Koncept Ambience
+link Srijan
+link Ashirwad
+link Featherlite
+link Elington
+link Vega City
+link Divyasree
+link Embassy
+link Puravankara
+link Godrej
+link Bagmane
+link The Botanika
+link Fortius Infra
+link Manyata
+link Brookefield
+link Ozone
+link Koncept Ambience
+link Srijan
+link Ashirwad
+link Featherlite
+link Elington
+link Vega City
+heading Automated Milestones and Scheduling
+text Witness the ease of tracking, managing, and executing construction projects like never before. No BIM? No problem! Observance can still craft your project milestones and schedule tracking with impeccable precision. Remember, with us, BIM is an option, not an obligation. BIM or not, we've got your analytics covered!
+heading Real-time Tracking
+text Monitor construction progress in real-time with automated milestone tracking and instant updates.
+heading Smart Scheduling
+text AI-powered scheduling optimization that adapts to your project's unique requirements.
+heading BIM Integration
+text Seamlessly integrate with existing BIM models or work independently with our advanced tracking system.
+heading Analytics Dashboard
+text Comprehensive analytics and insights to make data-driven decisions for your construction projects.
+image about-image-dark-0
+image about-image-dark-1
+image about-image-dark-2
+image about-image-dark-3
+image about-image-dark-4
+image about-image-dark-5
+image about-image-dark-6
+image about-image-dark-7
+button Go to slide 1
+button Go to slide 2
+button Go to slide 3
+button Go to slide 4
+button Go to slide 5
+button Go to slide 6
+button Go to slide 7
+button Go to slide 8
+image NVIDIA Logo
+heading Next Generation Construction AI
+text Transform construction data into actionable insights with advanced analytics for informed decisions.
+heading Defects AI
+text Detects 15 construction defects in real-time, minimizing downtime and rework costs.
+heading Mesh Segmentation AI
+text Segments meshes into 10 IFC classes, simplifying Mesh-to-BIM conversion and saving time.
+heading Objects AI
+text Identifies over 35 site objects to streamline inventory management and operations.
+heading Health & Safety AI
+text Uses facial recognition for real-time attendance, safety, and unknown person reports.
+heading Total Scans
+heading 1,600
+text 60 Scans last week
+heading Scanned Area
+heading 146M
+text Avg 51.2k sqft per scan
+heading Projects Onboarded
+heading 124
+text Due: 18; OnTime: 106
+heading Scans last week
+heading 60
+text 2400 scans scheduled
+heading What Our Partners Says
+text We work very closely with all of our customers to understand their needs, so much so, that we become partners!
+text “
+text I am pleased with Colliers collaboration with Inkers in developing CoGence to make our project management business more future-ready. As we focus on innovative technology platforms to provide customized and productive solutions for the industry, where one can get advanced analytics and real-time reports quickly, I am positive that Inkers will continue to add value to the platform and enhance its viability across clients.
+image Argenio Antao
+heading Argenio Antao
+text Chief Operating Officer - Colliers India
+text “
+text We're delighted with our partnership with Inkers and the transformative impact Observance has had on our construction projects at CHI. By leveraging this innovative platform, we're not just staying ahead of the curve but setting new standards in the industry. With Observance, we're empowered with timely delivered scan-to-BIM outputs, advanced analytics, and automated progress tracking, enabling us to deliver projects more efficiently than ever before.
+image Prataap Wadhwa
+heading Prataap Wadhwa
+text Managing Director - Convention Hotels
+heading Simple and Affordable Pricing
+text Select your product category to see relevant pricing plans.
+button Owners & Contractors
+button Architects
+button Lithic Scanner
+heading Lite
+text Perfect for individuals or small projects
+link Start Free Trial
+button Start Free Trial
+text 1 Project with 2 Users
+text Up to 10000 sqft scaned once
+text Textured 3D Model (Downloadable)
+text 3D Walkthrough
+text Thermal Video & Texture
+text 3D Segmented Model
+text 2D As-Built Drawings
+text Section, Annotation and other tools
+text Visual Defects & Task Manager
+heading Basic
+text Ideal for growing construction companies
+link Start Free Trial
+button Start Free Trial
+text Everything in Lite, plus
+text Unlimited Projects
+text 5 Users
+text Unlimited Area
+text Frequency as per required
+text Structural Defects
+text BIM Comparison
+text Milestone BOQ
+text CCTV Live Stream
+heading Plus
+text For large-scale construction operations
+link Start Free Trial
+button Start Free Trial
+text Everything in Basic, plus
+text Scan-to-BIM
+text Object Detection
+text Milestone Schedule
+text People Management & FR Reports
+text H&S Management & Reports
+text Google Maps & 3D VR Integration
+text Floor Stacking
+text Multi-Scan Comparison
+heading Integrations
+link Autodesk
+link Google Maps
+link MS Project
+link Oracle
+link Procore
+link Three.js
+link Autodesk
+link Google Maps
+link MS Project
+link Oracle
+link Procore
+link Three.js
+heading Contact Us
+text Get in touch for advanced AI solutions for your construction project
+heading Interested in a Free Scan?
+text For sales inquiries, please contact:
+link sales@inkers.ai
+text Fill out the form below, and we'll process your request to schedule your complimentary scan at a convenient time!
+heading Contact Information
+text First Name 
+text *
+textbox First Name *
+text Last Name 
+text *
+textbox Last Name *
+text Phone Code 
+text *
+textbox Phone Code *
+text Phone Number 
+text *
+textbox Phone Number *
+text Organization Name
+text *
+textbox Organization Name*
+text Email Id 
+text *
+textbox Email Id *
+text Area to Scan (sqft)
+text *
+spinbutton Area to Scan (sqft)*
+text Is BIM Available?
+checkbox Yes
+text Yes
+text Is Project Schedule Available?
+checkbox Yes
+text Yes
+text Preferred Demo Date
+Date Preferred Demo Date
+spinbutton Month
+text /
+spinbutton Day
+text /
+spinbutton Year
+button Show date picker
+text Will be formatted as dd-MMM-yyyy
+heading Project Details
+heading Additional Information
+heading Project Address
+text Project Address 
+text *
+textbox Project Address *
+textbox Address Line 2
+textbox City
+textbox State/Region/Province
+textbox Postal / Zip Code
+combobox 
+option -Select-
+option Åland Islands
+option Afghanistan
+option Akrotiri
+option Albania
+option Algeria
+option American Samoa
+option Andorra
+option Angola
+option Anguilla
+option Antarctica
+option Antigua and Barbuda
+option Argentina
+option Armenia
+option Aruba
+option Ashmore and Cartier Islands
+option Australia
+option Austria
+option Azerbaijan
+option Bahrain
+option Bangladesh
+option Barbados
+option Bassas Da India
+option Belarus
+option Belgium
+option Belize
+option Benin
+option Bermuda
+option Bhutan
+option Bolivia
+option Bosnia and Herzegovina
+option Botswana
+option Bouvet Island
+option Brazil
+option British Indian Ocean Territory
+option Br…

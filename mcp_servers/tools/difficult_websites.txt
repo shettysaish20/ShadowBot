@@ -1,0 +1,32 @@
+# Finance - India
+nseindia.com
+bseindia.com
+moneycontrol.com
+economictimes.indiatimes.com
+livemint.com
+business-standard.com
+
+# Global Markets
+bloomberg.com
+finance.yahoo.com
+reuters.com
+wsj.com
+
+# News (paywalls, JS-heavy)
+ft.com
+nytimes.com
+forbes.com
+guardian.com
+
+# E-commerce
+amazon.in
+flipkart.com
+myntra.com
+
+# Travel & Job
+makemytrip.com
+irctc.co.in
+indeed.com
+
+# Social
+quora.com

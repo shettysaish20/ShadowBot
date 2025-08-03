@@ -1,0 +1,312 @@
+"[0]<a href='/' />
+[1]<a href='/'>Home />
+[2]<a href='/about'>About />
+[3]<p >Product />
+[4]<p >Services />
+[5]<a href='/team'>Team />
+[6]<a href='/pricing'>Pricing />
+[7]<a href='/contact'>Contact />
+[8]<a href='/contact'>Demo />
+[9]<button type='button' id='radix-«R2kcdb»'>Toggle theme />
+construct
+construct
+construct
+measure
+measure
+measure
+improve
+improve
+improve
+If you can't
+measure
+it,
+you can't
+improve
+it.
+Observance measures,
+while you
+construct
+!
+Learn how
+[10]<a href='/services/owners'>Owners />
+,
+[11]<a href='/services/contractors'>Contractors />
+and
+[12]<a href='/services/architects'>Architects />
+rely on Observance.
+[13]<button  />
+	[14]<a id='cta-demo-button' href='/contact'>Request a demo
+→ />
+Your browser does not support the video tag.
+[15]<div  />
+[16]<button aria-label='Enter fullscreen' />
+[17]<button aria-label='Unmute video' />
+Main Features
+Our Core Features
+4D BIM (BIM with Timelines)
+Integrates the construction process with precise 2D and 3D measurements linked to project timelines, ensuring detailed documentation of all construction stages and progress tracking.
+Snag List
+Highlights clashes and deviations with color-coded 3D textures mapped onto building surfaces, using AI-powered snag lists for efficient tracking.
+Project Milestones
+Facilitates automated tracking of deliverables, quantities, timelines, and traceability from requirements to solutions.
+Scan to BIM
+Converts point cloud data into Revit models for structural, architectural, and MEP disciplines, offering tailored Scan-to-BIM solutions.
+Thermals Analytics
+Incorporates thermal texture models to analyze moisture levels, proactively addressing potential issues and enhancing project quality.
+Deviation Analysis
+Compares as-built 3D models with BIM designs, using a distance texture with color gradients to identify and highlight deviations.
+Our Customers
+[18]<a href='https://www.nhance.ai/' />
+	[19]<div  />
+[20]<a href='https://www.hyatt.com/development/ourbrands/hyattcentric' />
+	[21]<div  />
+[22]<a href='https://www.brigadegroup.com/' />
+	[23]<div  />
+[24]<a href='http://mes.gov.in/' />
+	[25]<div  />
+[26]<a href='https://www.sterlingandwilson.com/' />
+	[27]<div  />
+[28]<a href='https://inkers.ai' />
+	[29]<div  />
+[30]<a href='https://inkers.ai' />
+	[31]<div  />
+[32]<a href='http://inkers.ai' />
+	[33]<div  />
+[34]<a href='https://www.prestigeconstructions.com/' />
+	[35]<div  />
+[36]<a href='https://www.pidilite.com/' />
+	[37]<div  />
+[38]<a href='https://inkers.ai' />
+	[39]<div  />
+[40]<a href='https://ghrinfra.in/' />
+	[41]<div  />
+[42]<a href='http://inkers.ai' />
+	[43]<div  />
+[44]<a href='https://www.sobha.com/' />
+	[45]<div  />
+[46]<a href='https://www.gmrgroup.in' />
+	[47]<div  />
+[48]<a href='https://raynetxpert.com/' />
+	[49]<div  />
+[50]<a href='https://uknproperties.com/' />
+	[51]<div  />
+[52]<a href='https://www.nhance.ai/' />
+	[53]<div  />
+[54]<a href='https://www.hyatt.com/development/ourbrands/hyattcentric' />
+	[55]<div  />
+[56]<a href='https://www.brigadegroup.com/' />
+	[57]<div  />
+[58]<a href='http://mes.gov.in/' />
+	[59]<div  />
+[60]<a href='https://www.sterlingandwilson.com/' />
+	[61]<div  />
+[62]<a href='https://inkers.ai' />
+	[63]<div  />
+[64]<a href='https://inkers.ai' />
+	[65]<div  />
+[66]<a href='http://inkers.ai' />
+	[67]<div  />
+[68]<a href='https://www.prestigeconstructions.com/' />
+	[69]<div  />
+[70]<a href='https://www.pidilite.com/' />
+	[71]<div  />
+[72]<a href='https://inkers.ai' />
+	[73]<div  />
+[74]<a href='https://ghrinfra.in/' />
+	[75]<div  />
+[76]<a href='http://inkers.ai' />
+	[77]<div  />
+[78]<a href='https://www.sobha.com/' />
+	[79]<div  />
+[80]<a href='https://www.gmrgroup.in' />
+	[81]<div  />
+[82]<a href='https://raynetxpert.com/' />
+	[83]<div  />
+[84]<a href='https://uknproperties.com/' />
+	[85]<div  />
+[86]<a href='https://www.nhance.ai/' />
+	[87]<div  />
+[88]<a href='https://www.hyatt.com/development/ourbrands/hyattcentric' />
+	[89]<div  />
+[90]<a href='https://www.brigadegroup.com/' />
+	[91]<div  />
+[92]<a href='http://mes.gov.in/' />
+	[93]<div  />
+[94]<a href='https://www.sterlingandwilson.com/' />
+	[95]<div  />
+[96]<a href='https://inkers.ai' />
+	[97]<div  />
+[98]<a href='https://inkers.ai' />
+	[99]<div  />
+[100]<a href='http://inkers.ai' />
+	[101]<div  />
+[102]<a href='https://www.prestigeconstructions.com/' />
+	[103]<div  />
+[104]<a href='https://www.pidilite.com/' />
+	[105]<div  />
+[106]<a href='https://inkers.ai' />
+	[107]<div  />
+[108]<a href='https://ghrinfra.in/' />
+	[109]<div  />
+[110]<a href='http://inkers.ai' />
+	[111]<div  />
+[112]<a href='https://www.sobha.com/' />
+	[113]<div  />
+[114]<a href='https://www.gmrgroup.in' />
+	[115]<div  />
+[116]<a href='https://raynetxpert.com/' />
+	[117]<div  />
+[118]<a href='https://uknproperties.com/' />
+	[119]<div  />
+[120]<a href='https://www.nhance.ai/' />
+	[121]<div  />
+[122]<a href='https://www.hyatt.com/development/ourbrands/hyattcentric' />
+	[123]<div  />
+[124]<a href='https://www.brigadegroup.com/' />
+	[125]<div  />
+[126]<a href='http://mes.gov.in/' />
+	[127]<div  />
+[128]<a href='https://www.sterlingandwilson.com/' />
+	[129]<div  />
+[130]<a href='https://inkers.ai' />
+	[131]<div  />
+[132]<a href='https://inkers.ai' />
+	[133]<div  />
+[134]<a href='http://inkers.ai' />
+	[135]<div  />
+[136]<a href='https://www.prestigeconstructions.com/' />
+	[137]<div  />
+[138]<a href='https://www.pidilite.com/' />
+	[139]<div  />
+[140]<a href='https://inkers.ai' />
+	[141]<div  />
+[142]<a href='https://ghrinfra.in/' />
+	[143]<div  />
+[144]<a href='http://inkers.ai' />
+	[145]<div  />
+[146]<a href='https://www.sobha.com/' />
+	[147]<div  />
+[148]<a href='https://www.gmrgroup.in' />
+	[149]<div  />
+[150]<a href='https://raynetxpert.com/' />
+	[151]<div  />
+[152]<a href='https://uknproperties.com/' />
+	[153]<div  />
+Projects with Colliers
+[154]<a href='#' />
+	[155]<div  />
+[156]<a href='#' />
+	[157]<div  />
+[158]<a href='#' />
+	[159]<div  />
+[160]<a href='#' />
+	[161]<div  />
+[162]<a href='#' />
+	[163]<div  />
+[164]<a href='#' />
+	[165]<div  />
+[166]<a href='#' />
+	[167]<div  />
+[168]<a href='#' />
+	[169]<div  />
+[170]<a href='#' />
+	[171]<div  />
+[172]<a href='#' />
+	[173]<div  />
+[174]<a href='#' />
+	[175]<div  />
+[176]<a href='#' />
+	[177]<div  />
+[178]<a href='#' />
+	[179]<div  />
+[180]<a href='#' />
+	[181]<div  />
+[182]<a href='#' />
+	[183]<div  />
+[184]<a href='#' />
+	[185]<div  />
+[186]<a href='#' />
+	[187]<div  />
+[188]<a href='#' />
+	[189]<div  />
+[190]<a href='#' />
+	[191]<div  />
+[192]<a href='#' />
+	[193]<div  />
+[194]<a href='#' />
+	[195]<div  />
+[196]<a href='#' />
+	[197]<div  />
+[198]<a href='#' />
+	[199]<div  />
+[200]<a href='#' />
+	[201]<div  />
+[202]<a href='#' />
+	[203]<div  />
+[204]<a href='#' />
+	[205]<div  />
+[206]<a href='#' />
+	[207]<div  />
+[208]<a href='#' />
+	[209]<div  />
+[210]<a href='#' />
+	[211]<div  />
+[212]<a href='#' />
+	[213]<div  />
+[214]<a href='#' />
+	[215]<div  />
+[216]<a href='#' />
+	[217]<div  />
+Automated Milestones and Scheduling
+Witness the ease of tracking, managing, and executing construction projects like never before. No BIM? No problem! Observance can still craft your project milestones and schedule tracking with impeccable precision. Remember, with us, BIM is an option, not an obligation. BIM or not, we've got your analytics covered!
+Real-time Tracking
+Monitor construction progress in real-time with automated milestone tracking and instant updates.
+Smart Scheduling
+AI-powered scheduling optimization that adapts to your project's unique requirements.
+BIM Integration
+Seamlessly integrate with existing BIM models or work independently with our advanced tracking system.
+Analytics Dashboard
+Comprehensive analytics and insights to make data-driven decisions for your construction projects.
+[218]<button aria-label='Go to slide 1' />
+[219]<button aria-label='Go to slide 2' />
+[220]<button aria-label='Go to slide 3' />
+[221]<button aria-label='Go to slide 4' />
+[222]<button aria-label='Go to slide 5' />
+[223]<button aria-label='Go to slide 6' />
+[224]<button aria-label='Go to slide 7' />
+[225]<button aria-label='Go to slide 8' />
+Your browser does not support the video tag.
+Next Generation Construction AI
+Transform construction data into actionable insights with advanced analytics for informed decisions.
+Defects AI
+Detects 15 construction defects in real-time, minimizing downtime and rework costs.
+Mesh Segmentation AI
+Segments meshes into 10 IFC classes, simplifying Mesh-to-BIM conversion and saving time.
+Objects AI
+Identifies over 35 site objects to streamline inventory management and operations.
+Health & Safety AI
+Uses facial recognition for real-time attendance, safety, and unknown person reports.
+Total Scans
+0
+60 Scans last week
+Scanned Area
+0
+Avg 51.2k sqft per scan
+Projects Onboarded
+0
+Due: 18; OnTime: 106
+Scans last week
+0
+2400 scans scheduled
+What Our Partners Says
+We work very closely with all of our customers to understand their needs, so much so, that we become partners!
+“
+I am pleased with Colliers collaboration with Inkers in developing CoGence to make our project management business more future-ready. As we focus on innovative technology platforms to provide customized and productive solutions for the industry, where one can get advanced analytics and real-time reports quickly, I am positive that Inkers will continue to add value to the platform and enhance its viability across clients.
+Argenio Antao
+Chief Operating Officer - Colliers India
+“
+We're delighted with our partnership with Inkers and the transformative impact Observance has had on our construction projects at CHI. By leveraging this innovative platform, we're not just staying ahead of the curve but setting new standards in the industry. With Observance, we're empowered with timely delivered scan-to-BIM outputs, advanced analytics, and automated progress tracking, enabling us to deliver projects more efficiently than ever before.
+Prataap Wadhwa
+Managing Director - Convention Hotels
+Simple and Affordable Pricing
+Select your product category to se…

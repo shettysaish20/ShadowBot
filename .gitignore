@@ -1,0 +1,24 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+*.json
+*.env
+/document/
+/faiss_index/
+/media/
+/memory/
+*.pyc 
+*.zip
+*.html
+*.css
+*.js
+*.zip
+*.svg
+*.pem
+
+# Virtual environments
+.venv

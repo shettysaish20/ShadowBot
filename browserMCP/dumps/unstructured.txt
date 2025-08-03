@@ -1,0 +1,50 @@
+"[1]<a href='/'>Home />
+[2]<a href='/about'>About />
+[5]<a href='/team'>Team />
+[6]<a href='/pricing'>Pricing />
+[7]<a href='/contact'>Contact />
+[8]<a href='/contact'>Demo />
+[9]<button id='radix-«R2kcdb»' type='button'>Toggle theme />
+[10]<a href='/services/owners'>Owners />
+[11]<a href='/services/contractors'>Contractors />
+[12]<a href='/services/architects'>Architects />
+[14]<a id='cta-demo-button' href='/contact'>Request a demo
+→ />
+[226]<button>Owners & Contractors />
+[227]<button>Architects />
+[228]<button>Lithic Scanner />
+[229]<a href='/contact'> />
+[230]<button>Start Free Trial />
+[231]<a href='/contact'> />
+[232]<button>Start Free Trial />
+[233]<a href='/contact'> />
+[234]<button>Start Free Trial />
+[259]<a href='mailto:sales@inkers.ai'>sales@inkers.ai />
+[261]<input id='Name_First' name='Name_First' placeholder='Enter your first name' type='text'> />
+[263]<input id='Name_Last' name='Name_Last' placeholder='Enter your last name' type='text'> />
+[265]<input id='PhoneNumber_countrycodeval' name='PhoneNumber_countrycodeval' placeholder='Enter country code' type='text'> />
+[267]<input id='PhoneNumber_countrycode' name='PhoneNumber_countrycode' placeholder='Enter your phone number' type='tel'> />
+[269]<input id='SingleLine1' name='SingleLine1' placeholder='Enter your organization name' type='text'> />
+[271]<input id='Email' name='Email' placeholder='Enter your email' type='email'> />
+[273]<input id='Number' name='Number' placeholder='Enter area to scan (sqft)' type='number'> />
+[276]<input type='checkbox'> />
+[280]<input type='checkbox'> />
+[283]<input id='date-picker' name='date-picker' type='date'> />
+[285]<input id='Address_AddressLine1' name='Address_AddressLine1' placeholder='Address Line 1' type='text'> />
+[286]<input id='Address_AddressLine2' name='Address_AddressLine2' placeholder='Address Line 2' type='text'> />
+[287]<input id='Address_City' name='Address_City' placeholder='City' type='text'> />
+[288]<input id='Address_Region' name='Address_Region' placeholder='State/Region/Province' type='text'> />
+[289]<input id='Address_ZipCode' name='Address_ZipCode' placeholder='Postal / Zip Code' type='text'> />
+[290]<select name='Address_Country'>-Select-
+Åland Islands
+Afghanistan
+Akrotiri
+Albani />
+[292]<textarea id='MultiLine1' name='MultiLine1' placeholder='Any questions or concerns'> />
+[293]<button type='submit'>Submit />
+[294]<input name='name' placeholder='Enter your name' type='text'> />
+[295]<input name='email' placeholder='Enter your email' type='email'> />
+[296]<button type='submit'>Subscribe />
+[301]<a href='/contact'>Contact />
+[302]<a href='/'>Terms of Use />
+[303]<a href='/about'>About />"

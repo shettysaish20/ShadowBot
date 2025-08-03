@@ -1,0 +1,52 @@
+agents:
+  PlannerAgent:
+    prompt_file: "prompts/planner_prompt.txt"
+    model: "gemini"
+    mcp_servers: []  # No tools needed
+    
+  RetrieverAgent:
+    prompt_file: "prompts/retriever_prompt.txt" 
+    model: "gemini"
+    mcp_servers: ["websearch"]
+    # mcp_servers: ["documents", "websearch"]  # ✅ Fixed: Use actual server IDs
+    
+  ThinkerAgent:
+    prompt_file: "prompts/thinker_prompt.txt"
+    model: "gemini"
+    mcp_servers: []
+    
+  QAAgent:
+    prompt_file: "prompts/qaagent_prompt.txt"
+    model: "gemini"
+    mcp_servers: ["websearch"]  # ✅ Fixed: Use actual server ID
+
+  DistillerAgent:
+    prompt_file: "prompts/distiller_prompt.txt"
+    model: "gemini" 
+    mcp_servers: []
+
+  FormatterAgent:
+    prompt_file: "prompts/formatter_prompt.txt"
+    model: "gemini"
+    mcp_servers: []
+
+  CoderAgent:
+    prompt_file: "prompts/coder_prompt.txt"
+    model: "gemini"
+    mcp_servers: ["websearch"]
+    # mcp_servers: ["documents", "websearch"]  # ✅ Fixed: Give CoderAgent web tools
+
+  ExecutorAgent:
+    prompt_file: "prompts/executor_prompt.txt"
+    model: "gemini"
+    mcp_servers: []  # Executor uses different mechanism
+
+  ClarificationAgent:
+    prompt_file: "prompts/clarification_prompt.txt"
+    model: "gemini"
+    mcp_servers: ["websearch"]  # ✅ May need web search for clarification
+
+  SchedulerAgent:
+    prompt_file: "prompts/scheduler_prompt.txt"
+    model: "gemini"
+    mcp_servers: []

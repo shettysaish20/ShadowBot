@@ -1,0 +1,318 @@
+"{
+  "success": true,
+  "nav": [
+    {
+      "id": 1,
+      "desc": "Home",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 2,
+      "desc": "About",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 5,
+      "desc": "Team",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 6,
+      "desc": "Pricing",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 7,
+      "desc": "Contact",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 8,
+      "desc": "Demo",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 10,
+      "desc": "Owners",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 11,
+      "desc": "Contractors",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 12,
+      "desc": "Architects",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 14,
+      "desc": "Request a demo\n→ (cta-demo-button)",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 229,
+      "desc": "Link",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 231,
+      "desc": "Link",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 233,
+      "desc": "Link",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 301,
+      "desc": "Contact",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 302,
+      "desc": "Terms of Use",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 303,
+      "desc": "About",
+      "action": "click_element_by_index"
+    }
+  ],
+  "forms": [
+    {
+      "id": 261,
+      "desc": "Enter your first name (Name_First)",
+      "action": "input_text"
+    },
+    {
+      "id": 263,
+      "desc": "Enter your last name (Name_Last)",
+      "action": "input_text"
+    },
+    {
+      "id": 265,
+      "desc": "Enter country code (PhoneNumber_countrycodeval)",
+      "action": "input_text"
+    },
+    {
+      "id": 267,
+      "desc": "Enter your phone number (PhoneNumber_countrycode)",
+      "action": "input_text"
+    },
+    {
+      "id": 269,
+      "desc": "Enter your organization name (SingleLine1)",
+      "action": "input_text"
+    },
+    {
+      "id": 271,
+      "desc": "Enter your email (Email)",
+      "action": "input_text"
+    },
+    {
+      "id": 273,
+      "desc": "Enter area to scan (sqft) (Number)",
+      "action": "input_text"
+    },
+    {
+      "id": 276,
+      "desc": "Toggle option",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 280,
+      "desc": "Toggle option",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 283,
+      "desc": "Date Input",
+      "action": "input_text"
+    },
+    {
+      "id": 285,
+      "desc": "Address Line 1 (Address_AddressLine1)",
+      "action": "input_text"
+    },
+    {
+      "id": 286,
+      "desc": "Address Line 2 (Address_AddressLine2)",
+      "action": "input_text"
+    },
+    {
+      "id": 287,
+      "desc": "City (Address_City)",
+      "action": "input_text"
+    },
+    {
+      "id": 288,
+      "desc": "State/Region/Province (Address_Region)",
+      "action": "input_text"
+    },
+    {
+      "id": 289,
+      "desc": "Postal / Zip Code (Address_ZipCode)",
+      "action": "input_text"
+    },
+    {
+      "id": 290,
+      "desc": "-Select-\nÅland Islands\nAfghanistan\nAkrotiri\nAlbania\nAlgeria\nAmerican Samoa\nAndorra\nAngola\nAnguilla\nAntarctica\nAntigua and Barbuda\nArgentina\nArmenia\nAruba\nAshmore and Cartier Islands\nAustralia\nAustria\nAzerbaijan\nBahrain\nBangladesh\nBarbados\nBassas Da India\nBelarus\nBelgium\nBelize\nBenin\nBermuda\nBhutan\nBolivia\nBosnia and Herzegovina\nBotswana\nBouvet Island\nBrazil\nBritish Indian Ocean Territory\nBritish Virgin Islands\nBrunei\nBulgaria\nBurkina Faso\nBurma\nBurundi\nCambodia\nCameroon\nCanada\nCape Verde\nCaribbean Netherlands\nCayman Islands\nCentral African Republic\nChad\nChile\nChina\nChristmas Island\nClipperton Island\nCocos (Keeling) Islands\nColombia\nComoros\nCook Islands\nCoral Sea Islands\nCosta Rica\nCote D'Ivoire\nCroatia\nCuba\nCuraçao\nCyprus\nCzech Republic\nDemocratic Republic of the Congo\nDenmark\nDhekelia\nDjibouti\nDominica\nDominican Republic\nEcuador\nEgypt\nEl Salvador\nEquatorial Guinea\nEritrea\nEstonia\nEthiopia\nEuropa Island\nFalkland Islands (Islas Malvinas)\nFaroe Islands\nFederated States of Micronesia\nFiji\nFinland\nFrance\nFrench Guiana\nFrench Polynesia\nFrench Southern and Antarctic Lands\nGabon\nGaza Strip\nGeorgia\nGermany\nGhana\nGibraltar\nGlorioso Islands\nGreece\nGreenland\nGrenada\nGuadeloupe\nGuam\nGuatemala\nGuernsey\nGuinea\nGuinea-bissau\nGuyana\nHaiti\nHeard Island and Mcdonald Islands\nHoly See (Vatican City)\nHonduras\nHong Kong\nHungary\nIceland\nIndia\nIndonesia\nIran\nIraq\nIreland\nIsle of Man\nIsrael\nItaly\nJamaica\nJan Mayen\nJapan\nJersey\nJordan\nJuan De Nova Island\nKazakhstan\nKenya\nKiribati\nKosovo\nKuwait\nKyrgyzstan\nLaos\nLatvia\nLebanon\nLesotho\nLiberia\nLibya\nLiechtenstein\nLithuania\nLuxembourg\nMacau\nMacedonia\nMadagascar\nMalawi\nMalaysia\nMaldives\nMali\nMalta\nMarshall Islands\nMartinique\nMauritania\nMauritius\nMayotte\nMexico\nMoldova\nMonaco\nMongolia\nMontenegro\nMontserrat\nMorocco\nMozambique\nMyanmar\nNamibia\nNauru\nNavassa Island\nNepal\nNetherlands Antilles\nNetherlands\nNew Caledonia\nNew Zealand\nNicaragua\nNiger\nNigeria\nNiue\nNorfolk Island\nNorth Korea\nNorthern Mariana Islands\nNorway\nOman\nPakistan\nPalau\nPalestine\nPanama\nPapua New Guinea\nParacel Islands\nParaguay\nPeru\nPhilippines\nPitcairn Islands\nPoland\nPortugal\nPuerto Rico\nQatar\nRepublic of the Congo\nReunion\nRomania\nRussia\nRwanda\nSaint BarthÃ©lemy\nSaint Helena\nSaint Kitts and Nevis\nSaint Lucia\nSaint Martin\nSaint Pierre and Miquelon\nSaint Vincent and the Grenadines\nSamoa\nSan Marino\nSao Tome and Principe\nSaudi Arabia\nSenegal\nSerbia\nSeychelles\nSierra Leone\nSingapore\nSint Maarten\nSlovakia\nSlovenia\nSolomon Islands\nSomalia\nSouth Africa\nSouth Georgia and the South Sandwich Islands\nSouth Korea\nSouth Sudan\nSpain\nSpratly Islands\nSri Lanka\nSudan\nSuriname\nSvalbard\nSwaziland\nSweden\nSwitzerland\nSyria\nTaiwan\nTajikistan\nTanzania\nThailand\nThe Bahamas\nThe Gambia\nTimor-leste\nTogo\nTokelau\nTonga\nTrinidad and Tobago\nTromelin Island\nTunisia\nTurkey\nTurkmenistan\nTurks and Caicos Islands\nTuvalu\nUganda\nUkraine\nUnited Arab Emirates\nUnited Kingdom\nUnited States\nUruguay\nUzbekistan\nVanuatu\nVenezuela\nVietnam\nVirgin Islands\nWake Island\nWallis and Futuna\nWest Bank\nWestern Sahara\nYemen\nZambia\nZimbabwe (Address_Country)",
+      "action": "select_dropdown_option",
+      "options": [
+        "Åland Islands",
+        "Afghanistan",
+        "Akrotiri",
+        "Albania",
+        "Algeria",
+        "American Samoa",
+        "Andorra",
+        "Angola",
+        "Anguilla",
+        "Antarctica",
+        "Antigua and Barbuda",
+        "Argentina",
+        "Armenia",
+        "Aruba",
+        "Ashmore and Cartier Islands",
+        "Australia",
+        "Austria",
+        "Azerbaijan",
+        "Bahrain",
+        "Bangladesh",
+        "Barbados",
+        "Bassas Da India",
+        "Belarus",
+        "Belgium",
+        "Belize",
+        "Benin",
+        "Bermuda",
+        "Bhutan",
+        "Bolivia",
+        "Bosnia and Herzegovina",
+        "Botswana",
+        "Bouvet Island",
+        "Brazil",
+        "British Indian Ocean Territory",
+        "British Virgin Islands",
+        "Brunei",
+        "Bulgaria",
+        "Burkina Faso",
+        "Burma",
+        "Burundi",
+        "Cambodia",
+        "Cameroon",
+        "Canada",
+        "Cape Verde",
+        "Caribbean Netherlands",
+        "Cayman Islands",
+        "Central African Republic",
+        "Chad",
+        "Chile",
+        "China",
+        "Christmas Island",
+        "Clipperton Island",
+        "Cocos (Keeling) Islands",
+        "Colombia",
+        "Comoros",
+        "Cook Islands",
+        "Coral Sea Islands",
+        "Costa Rica",
+        "Cote D'Ivoire",
+        "Croatia",
+        "Cuba",
+        "Curaçao",
+        "Cyprus",
+        "Czech Republic",
+        "Democratic Republic of the Congo",
+        "Denmark",
+        "Dhekelia",
+        "Djibouti",
+        "Dominica",
+        "Dominican Republic",
+        "Ecuador",
+        "Egypt",
+        "El Salvador",
+        "Equatorial Guinea",
+        "Eritrea",
+        "Estonia",
+        "Ethiopia",
+        "Europa Island",
+        "Falkland Islands (Islas Malvinas)",
+        "Faroe Islands",
+        "Federated States of Micronesia",
+        "Fiji",
+        "Finland",
+        "France",
+        "French Guiana",
+        "French Polynesia",
+        "French Southern and Antarctic Lands",
+        "Gabon",
+        "Gaza Strip",
+        "Georgia",
+        "Germany",
+        "Ghana",
+        "Gibraltar",
+        "Glorioso Islands",
+        "Greece",
+        "Greenland",
+        "Grenada",
+        "Guadeloupe",
+        "Guam",
+        "Guatemala",
+        "Guernsey",
+        "Guinea",
+        "Guinea-bissau",
+        "Guyana",
+        "Haiti",
+        "Heard Island and Mcdonald Islands",
+        "Holy See (Vatican City)",
+        "Honduras",
+        "Hong Kong",
+        "Hungary",
+        "Iceland",
+        "India",
+        "Indonesia",
+        "Iran",
+        "Iraq",
+        "Ireland",
+        "Isle of Man",
+        "Israel",
+        "Italy",
+        "Jamaica",
+        "Jan Mayen",
+        "Japan",
+        "Jersey",
+        "Jordan",
+        "Juan De Nova Island",
+        "Kazakhstan",
+        "Kenya",
+        "Kiribati",
+        "Kosovo",
+        "Kuwait",
+        "Kyrgyzstan",
+        "Laos",
+        "Latvia",
+        "Lebanon",
+        "Lesotho",
+        "Liberia",
+        "Libya",
+        "Liechtenstein",
+        "Lithuania",
+        "Luxembourg",
+        "Macau",
+        "Macedonia",
+        "Madagascar",
+        "Malawi",
+        "Malaysia",
+        "Maldives",
+        "Mali",
+        "Malta",
+        "Marshall Islands",
+        "Martinique",
+        "Mauritania",
+        "Mauritius",
+        "Ma…

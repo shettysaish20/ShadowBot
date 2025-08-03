@@ -1,0 +1,74 @@
+"{
+  "success": true,
+  "nav": [
+    {
+      "id": 1,
+      "desc": "Home",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 2,
+      "desc": "About",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 5,
+      "desc": "Team",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 6,
+      "desc": "Pricing",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 7,
+      "desc": "Contact",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 8,
+      "desc": "Demo",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 10,
+      "desc": "Owners",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 11,
+      "desc": "Contractors",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 12,
+      "desc": "Architects",
+      "action": "click_element_by_index"
+    },
+    {
+      "id": 14,
+      "desc": "Request a demo\n→ (cta-demo-button)",
+      "action": "click_element_by_index"
+    }
+  ],
+  "forms": [],
+  "buttons": [
+    {
+      "id": 3,
+      "desc": "Product",
+      "action": "hover item, not implemented yet"
+    },
+    {
+      "id": 4,
+      "desc": "Services",
+      "action": "hover item, not implemented yet"
+    },
+    {
+      "id": 9,
+      "desc": "Toggle theme",
+      "action": "click_element_by_index"
+    }
+  ],
+  "total": 13
+}"
