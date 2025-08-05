@@ -1,6 +1,6 @@
 agents:
   PlannerAgent:
-    prompt_file: "prompts/planner_prompt.txt"
+    prompt_file: "prompts/profiles/planner_customer_support.txt"
     model: "gemini"
     mcp_servers: []  # No tools needed
     
