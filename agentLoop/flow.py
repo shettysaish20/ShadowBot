@@ -10,6 +10,9 @@ from rich.console import Console
 from pathlib import Path
 from action.executor import run_user_code
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
+from config.log_config import get_logger, logger_step, logger_json_block, logger_prompt, logger_code_block, logger_error
+
+logger = get_logger(__name__)
 
 class AgentLoop4:
     def __init__(self, multi_mcp, strategy="conservative"):
@@ -58,7 +61,9 @@ Profile each file separately and return details."""
                     "files": uploaded_files,
                     "instruction": grounded_instruction,
                     "writes": ["file_profiles"]
-                }
+                }, 
+                step_id="file_profiling",
+                iteration=1
             )
             if file_result["success"]:
                 file_profiles = file_result["output"]
@@ -73,7 +78,9 @@ Profile each file separately and return details."""
                 "planning_strategy": self.strategy,
                 "file_manifest": file_manifest,
                 "file_profiles": file_profiles
-            }
+            },
+            step_id="planning",
+            iteration=1
         )
 
         if not plan_result["success"]:
@@ -111,7 +118,7 @@ Profile each file separately and return details."""
         visualizer = ExecutionVisualizer(context)
         console = Console()
         
-        MAX_CONCURRENT_AGENTS = 4
+        MAX_CONCURRENT_AGENTS = 1
         max_iterations = 20
         iteration = 0
 
@@ -180,17 +187,20 @@ Profile each file separately and return details."""
         # Execute first iteration
         agent_input = build_agent_input()
         await self._show_timer_animation(30, f"🤖 {agent_type} Waiting before calling Gemini")
-        result = await self.agent_runner.run_agent(agent_type, agent_input)
+        result = await self.agent_runner.run_agent(agent_type, agent_input, step_id=step_id, iteration=1)
         
         # NEW: Handle code execution if agent returned code variants
         if result["success"] and "code" in result["output"]:
             log_step(f"🔧 {step_id}: Agent returned code variants, executing...", symbol="⚙️")
+            logger_step(logger, f"🔄 Executing Step [{step_id}] - Agent returned executable code or files, executing...")
             
             # Prepare executor input
             executor_input = {
                 "code_variants": result["output"]["code"],  # CODE_1, CODE_2, etc.
             }
-            
+
+            logger_json_block(logger, executor_input, "Executor Input for Code Execution")
+
             # Execute code variants sequentially until one succeeds
             try:
                 execution_result = await run_user_code(
@@ -254,7 +264,7 @@ Profile each file separately and return details."""
 
             await self._show_timer_animation(30, f"🤖 {agent_type} Waiting before calling Gemini")
             
-            second_result = await self.agent_runner.run_agent(agent_type, second_input)
+            second_result = await self.agent_runner.run_agent(agent_type, second_input, step_id=step_id, iteration=2)
             
             # Handle code execution for second iteration too
             if second_result["success"] and "code" in second_result["output"]:
