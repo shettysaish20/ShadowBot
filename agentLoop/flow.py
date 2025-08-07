@@ -9,12 +9,31 @@ from agentLoop.visualizer import ExecutionVisualizer
 from rich.console import Console
 from pathlib import Path
 from action.executor import run_user_code
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 
 class AgentLoop4:
     def __init__(self, multi_mcp, strategy="conservative"):
         self.multi_mcp = multi_mcp
         self.strategy = strategy
         self.agent_runner = AgentRunner(multi_mcp)
+        self.console = Console()
+
+    async def _show_timer_animation(self, duration=30, message="Waiting before calling Gemini"):
+            """Show an animated timer for the specified duration"""
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                TimeElapsedColumn(),
+                console=self.console,
+                transient=True
+            ) as progress:
+                task = progress.add_task(f"[cyan]{message}...", total=duration)
+                
+                for i in range(duration):
+                    progress.update(task, advance=1)
+                    await asyncio.sleep(1)
 
     async def run(self, query, file_manifest, uploaded_files):
         # Phase 1: File Profiling (if files exist)
@@ -29,6 +48,8 @@ IMPORTANT: Use these EXACT file names in your response:
 {file_list_text}
 
 Profile each file separately and return details."""
+            
+            await self._show_timer_animation(30, f"🤖 DistillerAgent Waiting before calling Gemini")
 
             file_result = await self.agent_runner.run_agent(
                 "DistillerAgent",
@@ -41,6 +62,8 @@ Profile each file separately and return details."""
             )
             if file_result["success"]:
                 file_profiles = file_result["output"]
+
+        await self._show_timer_animation(30, f"🤖 PlannerAgent Waiting before calling Gemini")
 
         # Phase 2: Planning
         plan_result = await self.agent_runner.run_agent(
@@ -156,6 +179,7 @@ Profile each file separately and return details."""
 
         # Execute first iteration
         agent_input = build_agent_input()
+        await self._show_timer_animation(30, f"🤖 {agent_type} Waiting before calling Gemini")
         result = await self.agent_runner.run_agent(agent_type, agent_input)
         
         # NEW: Handle code execution if agent returned code variants
@@ -227,6 +251,8 @@ Profile each file separately and return details."""
                 instruction=result["output"].get("next_instruction", "Continue"),
                 previous_output=result["output"]
             )
+
+            await self._show_timer_animation(30, f"🤖 {agent_type} Waiting before calling Gemini")
             
             second_result = await self.agent_runner.run_agent(agent_type, second_input)
             
