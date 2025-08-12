@@ -22,3 +22,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# mcp server documents and index
+mcp_servers/documents/*
+mcp_servers/faiss_index/*
+!mcp_servers/faiss_index/*.py

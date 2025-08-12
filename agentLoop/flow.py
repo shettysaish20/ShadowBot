@@ -20,8 +20,7 @@ class AgentLoop4:
         # Phase 1: File Profiling (if files exist)
         file_profiles = {}
         if uploaded_files:
-            file_list_text = "\n".join([f"- File {i+1}: {Path(f).name} (full path: {f})" 
-                                       for i, f in enumerate(uploaded_files)])
+            file_list_text = "\n".join([f"- File {i+1}: {Path(f).name} (full path: {f})" for i, f in enumerate(uploaded_files)])
             
             grounded_instruction = f"""Profile and summarize each file's structure, columns, content type.
 
@@ -83,7 +82,7 @@ Profile each file separately and return details."""
         await self._execute_dag(context)
         return context
 
-    async def _execute_dag(self, context):
+    async def _execute_dag(self, context: ExecutionContextManager):
         """Execute DAG with simple output chaining"""
         visualizer = ExecutionVisualizer(context)
         console = Console()
@@ -130,7 +129,7 @@ Profile each file separately and return details."""
             if len(ready_steps) > batch_size:
                 await asyncio.sleep(5)
 
-    async def _execute_step(self, step_id, context):
+    async def _execute_step(self, step_id, context: ExecutionContextManager):
         """SIMPLE: Execute step with direct output passing and code execution"""
         step_data = context.get_step_data(step_id)
         agent_type = step_data["agent"]
