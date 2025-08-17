@@ -24,10 +24,10 @@ class AgentLoop4:
             
             grounded_instruction = f"""Profile and summarize each file's structure, columns, content type.
 
-IMPORTANT: Use these EXACT file names in your response:
-{file_list_text}
+            IMPORTANT: Use these EXACT file names in your response:
+            {file_list_text}
 
-Profile each file separately and return details."""
+            Profile each file separately and return details."""
 
             file_result = await self.agent_runner.run_agent(
                 "DistillerAgent",
@@ -269,21 +269,26 @@ Profile each file separately and return details."""
             
             return second_result if second_result["success"] else result
         
-        if result["success"] and "clarification_request" in result:
+        ## FIXED: Check for the code bug in ClarificationAgent
+        if result["success"] and "clarification_request" in result["output"]:
             log_step(f"🤔 {step_id}: Clarification needed", symbol="❓")
             
             # Get user input
-            clarification = result["clarification_request"]
-            user_response = await self._get_user_input(clarification)
+            clarification = result["output"].get("clarification_request",{"message": "Please elaborate on your query!"})
+            user_response = await self._get_user_input(clarification["message"])
             
             # CREATE the actual node output (ClarificationAgent doesn't do this)
             result["output"] = {
                 "user_choice": user_response,
                 "clarification_provided": clarification["message"]
             }
-            
             # Mark as successful
             result["success"] = True
         
         return result
+    
+    async def _get_user_input(self, message):
+        """Get query from user"""
+        log_step(message, symbol="❓")
+        return input().strip()
 
