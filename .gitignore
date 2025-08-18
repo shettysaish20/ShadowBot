@@ -13,9 +13,7 @@ wheels/
 /memory/
 *.pyc 
 *.zip
-*.html
 *.css
-*.js
 *.zip
 *.svg
 *.pem
