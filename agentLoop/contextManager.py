@@ -30,9 +30,15 @@ class ExecutionContextManager:
 
         # Build plan DAG
         for node in plan_graph.get("nodes", []):
-            self.plan_graph.add_node(node["id"], **node, 
-                status='pending', output=None, error=None, cost=0.0,
-                start_time=None, end_time=None, execution_time=0.0)
+            # Avoid duplicate kwarg 'status' etc
+            sanitized = {k: v for k, v in node.items() if k not in {'status','output','error','cost','start_time','end_time','execution_time'}}
+            node_status = node.get('status','pending')
+            self.plan_graph.add_node(
+                node["id"],
+                **sanitized,
+                status=node_status, output=None, error=None, cost=0.0,
+                start_time=None, end_time=None, execution_time=0.0
+            )
             
         for edge in plan_graph.get("edges", []):
             self.plan_graph.add_edge(edge["source"], edge["target"])

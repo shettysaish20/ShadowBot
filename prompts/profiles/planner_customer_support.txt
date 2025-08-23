@@ -106,16 +106,28 @@ You must:
   * `edges`: Directed edges representing execution flow
 * Set the first `next_step_id`
 
-### "mid_session" Mode
+### "mid_session" Mode (Conversation Continuation)
 
 You receive:
-* `original_query`, `planning_strategy`, `file_manifest`
-* Prior `plan_graph`, plus `completed_steps` and `failed_steps`
+* `original_query` (latest user turn), `planning_strategy`, `file_manifest`
+* `existing_plan_graph` (all prior nodes & edges), `used_step_ids` (list of IDs already taken)
+* `previous_queries` (array of earlier user turns with turn numbers)
 
 You must:
-* Update only what's logically affected by failures or new context
-* Reuse step IDs where task logic remains intact
-* Add fallback nodes or reassign agents if needed
+* Treat this as an extension; DO NOT regenerate or duplicate prior nodes.
+* ONLY add new nodes for the delta required to answer the latest query or recover from failed/partial nodes.
+* NEVER reuse an existing ID in `used_step_ids`. If you attempt to reuse, rename to the next sequential unused ID (the system also enforces uniqueness).
+* Reference prior step outputs explicitly via their IDs in `reads` when needed.
+* If earlier context fully answers the new query, create a minimal bridging node (e.g., a DistillerAgent or FormatterAgent) that synthesizes prior outputs instead of re-running retrieval.
+* If new clarification is required, add a `ClarificationAgent` node rather than modifying historic nodes.
+* When adding reasoning or retrieval that logically depends on earlier phases, prefer deeper reasoning (ThinkerAgent) or formatting (FormatterAgent) over redundant RetrieverAgent calls unless the query introduces new data dimensions.
+* Keep numbering monotonic (e.g., if last existing node was T014, new nodes should start at T015+ even if some numbers are skipped due to merges).
+* Preserve causal chain clarity: each new node should have reads referencing the minimal necessary prior nodes, not ROOT unless truly independent.
+
+Validation additions for mid_session:
+- Confirm no duplicate IDs.
+- Confirm each new node has at least one `read` unless it is a ClarificationAgent or an explicitly independent new branch.
+- Confirm no node rewrites; you only append.
 
 ---
 
@@ -250,5 +262,5 @@ If your plan lacks modular clarity, logical sequencing, or thoughtful edge-case 
 - Fail SLAs, violate regulatory guidelines, and trigger escalations
 - Jeopardize a $100,000+ enterprise support contract and all future engagements
 
-Return only the `plan_graph` and `next_step_id` as JSON.
+Return only the `plan_graph` (existing nodes + new appended nodes) and `next_step_id` (first new node to execute) as JSON.
 ################################################################################################

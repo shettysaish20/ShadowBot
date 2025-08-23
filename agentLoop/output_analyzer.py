@@ -11,7 +11,7 @@ import os
 from html import unescape
 import asyncio
 import aiohttp
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 import time
 
 # Fix imports for standalone usage
@@ -141,10 +141,10 @@ class ImageValidator:
             return [{'url': url, 'exists': False, 'error': f'sync_wrapper: {str(e)}', 'status': 0} for url in urls]
 
 class OutputAnalyzer:
-    def __init__(self, context: ExecutionContextManager = None, validate_images: bool = True):
+    def __init__(self, context: Any = None, validate_images: bool = True):
         """Work directly with NetworkX graph - no intermediate processing"""
-        self.context = context
-        self.graph = context.plan_graph if context else None
+        self.context = context  # dynamic type (may be None)
+        self.graph = getattr(context, 'plan_graph', None) if context else None
         self.console = Console()
         self.validate_images = validate_images
         self.image_validator = ImageValidator() if validate_images else None
@@ -152,7 +152,7 @@ class OutputAnalyzer:
     def show_results(self):
         """Display comprehensive results analysis directly from NetworkX graph"""
         
-        if not self.context:
+        if not self.context or not self.graph:
             self.console.print("❌ No execution context available")
             return
             
@@ -176,39 +176,44 @@ class OutputAnalyzer:
         table.add_column("Status")
         table.add_column("Raw Output Keys")
         
-        for node_id in self.graph.nodes:
-            if node_id == "ROOT":
-                continue
-            node_data = self.graph.nodes[node_id]
-            if node_data.get('output'):
-                output = node_data['output']
+        if self.graph:
+            for node_id in self.graph.nodes:
+                if node_id == "ROOT":
+                    continue
+                node_data = self.graph.nodes[node_id]
+                keys: List[str] = []
+                output = node_data.get('output')
                 if isinstance(output, dict):
-                    if 'output' in output and isinstance(output['output'], dict):
-                        keys = list(output['output'].keys())
+                    nested = output.get('output')
+                    if isinstance(nested, dict):
+                        keys = list(nested.keys())
                     else:
                         keys = list(output.keys())
-                else:
+                elif output is not None:
                     keys = ['raw_text']
-                
-                status = node_data['status']
-                if status == 'completed':
-                    status = f"[green]✅ {status}[/green]"
-                elif status == 'failed':
-                    status = f"[red]❌ {status}[/red]"
-                
+                status_val = node_data.get('status', 'unknown')
+                if status_val == 'completed':
+                    status_fmt = f"[green]✅ {status_val}[/green]"
+                elif status_val == 'failed':
+                    status_fmt = f"[red]❌ {status_val}[/red]"
+                else:
+                    status_fmt = status_val
                 table.add_row(
                     node_id,
                     node_data.get('agent', 'Unknown'),
-                    status,
+                    status_fmt,
                     str(keys)
                 )
         
         self.console.print(table)
         
         # 3. Session Info directly from graph
-        self.console.print(f"\n📋 **Session:** {self.graph.graph['session_id']}")
-        self.console.print(f"🕐 **Created:** {self.graph.graph['created_at']}")
-        self.console.print(f"📁 **Session File:** memory/session_summaries_index/{self.graph.graph['created_at'][:10].replace('-', '/')}/session_{self.graph.graph['session_id']}.json")
+        sid = self.graph.graph.get('session_id','-') if self.graph else '-'
+        created = self.graph.graph.get('created_at','-') if self.graph else '-'
+        self.console.print(f"\n📋 **Session:** {sid}")
+        self.console.print(f"🕐 **Created:** {created}")
+        if created != '-' and sid != '-':
+            self.console.print(f"📁 **Session File:** memory/session_summaries_index/{created[:10].replace('-', '/')}/session_{sid}.json")
 
         # Enhanced cost display
         cost_breakdown = summary.get("cost_breakdown", {})
@@ -264,7 +269,15 @@ class OutputAnalyzer:
         session_id = self.graph.graph['session_id']
         
         # ✅ STRATEGY 1: Check for auto-saved HTML file (keep this)
-        html_file_path = Path(f"media/generated/{session_id}/formatted_report.html")
+        # Support versioned multi-turn reports
+        session_dir = Path(f"media/generated/{session_id}")
+        html_file_path = session_dir / "formatted_report.html"
+        if html_file_path.exists():
+            # Find next suffix
+            idx = 2
+            while (session_dir / f"formatted_report_turn_{idx}.html").exists():
+                idx += 1
+            html_file_path = session_dir / f"formatted_report_turn_{idx}.html"
         if html_file_path.exists():
             try:
                 html_content = html_file_path.read_text(encoding='utf-8')
@@ -1178,7 +1191,14 @@ def extract_html_report_from_session_file(session_file_path):
         html_content = None
         
         # ✅ STRATEGY 1: Check for auto-saved HTML file
-        html_file_path = Path(f"media/generated/{session_id}/formatted_report.html")
+        # Versioned path (avoid overwrite)
+        session_dir = Path(f"media/generated/{session_id}")
+        html_file_path = session_dir / "formatted_report.html"
+        if html_file_path.exists():
+            idx = 2
+            while (session_dir / f"formatted_report_turn_{idx}.html").exists():
+                idx += 1
+            html_file_path = session_dir / f"formatted_report_turn_{idx}.html"
         if html_file_path.exists():
             try:
                 html_content = html_file_path.read_text(encoding='utf-8')

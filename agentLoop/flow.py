@@ -3,6 +3,7 @@
 import networkx as nx
 import asyncio
 from agentLoop.contextManager import ExecutionContextManager
+from typing import Optional, Union, Any, Dict
 from agentLoop.agents import AgentRunner
 from utils.utils import log_step, log_error
 from agentLoop.visualizer import ExecutionVisualizer
@@ -15,8 +16,23 @@ class AgentLoop4:
         self.multi_mcp = multi_mcp
         self.strategy = strategy
         self.agent_runner = AgentRunner(multi_mcp)
+        self._conversation_turn = 0
 
-    async def run(self, query, file_manifest, uploaded_files):
+    async def run(self, query, file_manifest, uploaded_files, context: Optional[ExecutionContextManager] = None):
+        """Run planning + execution. If an existing context is supplied, extend the current session.
+
+        Args:
+            query: User's new query / follow-up
+            file_manifest: Current file manifest
+            uploaded_files: Files just uploaded (optional per turn)
+            context: Existing ExecutionContextManager (continuation) or None (new session)
+        Returns:
+            ExecutionContextManager (existing or newly created) updated with new nodes
+        """
+        self._conversation_turn += 1
+        is_continuation = context is not None
+
+        # Phase 1: (Re)Profile only newly provided files (simple approach)
         # Phase 1: File Profiling (if files exist)
         file_profiles = {}
         if uploaded_files:
@@ -41,16 +57,37 @@ class AgentLoop4:
             if file_result["success"]:
                 file_profiles = file_result["output"]
 
-        # Phase 2: Planning
-        plan_result = await self.agent_runner.run_agent(
-            "PlannerAgent",
-            {
-                "original_query": query,
-                "planning_strategy": self.strategy,
-                "file_manifest": file_manifest,
-                "file_profiles": file_profiles
+        # Phase 2: Planning (initial vs mid_session)
+        planner_input = {
+            "original_query": query,
+            "planning_strategy": self.strategy,
+            "file_manifest": file_manifest,
+            "file_profiles": file_profiles,
+            "mode": "mid_session" if is_continuation else "initial",
+            "conversation_turn": self._conversation_turn
+        }
+        if is_continuation and context is not None:
+            # Provide existing plan graph + used IDs + recent queries for context
+            existing_nodes = [n for n in context.plan_graph.nodes if n != "ROOT"]
+            planner_input["existing_plan_graph"] = {
+                "nodes": [
+                    {
+                        "id": n,
+                        "agent": context.plan_graph.nodes[n].get("agent"),
+                        "description": context.plan_graph.nodes[n].get("description"),
+                        "reads": context.plan_graph.nodes[n].get("reads", []),
+                        "writes": context.plan_graph.nodes[n].get("writes", []),
+                        "status": context.plan_graph.nodes[n].get("status")
+                    } for n in existing_nodes
+                ],
+                "edges": [
+                    {"source": u, "target": v} for u, v in context.plan_graph.edges() if u != "ROOT" or v != "ROOT"
+                ]
             }
-        )
+            planner_input["used_step_ids"] = existing_nodes
+            planner_input["previous_queries"] = context.plan_graph.graph.get("queries", [])
+
+        plan_result = await self.agent_runner.run_agent("PlannerAgent", planner_input)
 
         if not plan_result["success"]:
             raise RuntimeError(f"Planning failed: {plan_result['error']}")
@@ -60,27 +97,93 @@ class AgentLoop4:
         
         plan_graph = plan_result["output"]["plan_graph"]
 
-        # Phase 3: Simple Output Chain Execution
-        context = ExecutionContextManager(
-            plan_graph,
-            session_id=None,
-            original_query=query,
-            file_manifest=file_manifest
-        )
-        
-        context.set_multi_mcp(self.multi_mcp)
-        
-        # Store initial files in output chain
-        if file_profiles:
-            context.plan_graph.graph['output_chain']['file_profiles'] = file_profiles
+        if not is_continuation:
+            # Phase 3: Create new context
+            context = ExecutionContextManager(
+                plan_graph,
+                session_id="",  # auto-generate inside constructor when falsy
+                original_query=query,
+                file_manifest=file_manifest
+            )
+            context.set_multi_mcp(self.multi_mcp)
+            context.plan_graph.graph.setdefault("queries", []).append({
+                "turn": self._conversation_turn,
+                "query": query
+            })
 
-        # Store uploaded files directly
-        for file_info in file_manifest:
-            context.plan_graph.graph['output_chain'][file_info['name']] = file_info['path']
+            # Store initial files in output chain
+            if file_profiles:
+                context.plan_graph.graph['output_chain']['file_profiles'] = file_profiles
+
+            # Store uploaded files directly
+            for file_info in file_manifest:
+                context.plan_graph.graph['output_chain'][file_info['name']] = file_info['path']
+        else:
+            # Phase 3b: Append new plan to existing context
+            self._append_new_plan(context, plan_graph, query)
+            context.plan_graph.graph.setdefault("queries", []).append({
+                "turn": self._conversation_turn,
+                "query": query
+            })
+            # Merge new file profiles (namespace safe)
+            if file_profiles:
+                context.plan_graph.graph['output_chain'][f"file_profiles_turn_{self._conversation_turn}"] = file_profiles
 
         # Phase 4: Execute with simple output chaining
         await self._execute_dag(context)
         return context
+
+    def _append_new_plan(self, context: ExecutionContextManager, new_plan_graph: dict, query: str):
+        """Append nodes/edges from a new plan_graph into existing session graph.
+        Ensures unique IDs and preserves existing node statuses.
+        """
+        existing_ids = set(context.plan_graph.nodes())
+        # Determine next numeric index for fallback
+        def next_id_generator():
+            # Extract numeric parts like T001
+            max_num = 0
+            for nid in existing_ids:
+                try:
+                    if nid.startswith('T'):
+                        num = int(''.join(ch for ch in nid[1:] if ch.isdigit()))
+                        max_num = max(max_num, num)
+                except Exception:
+                    continue
+            while True:
+                max_num += 1
+                yield f"T{max_num:03d}"
+        id_gen = next_id_generator()
+
+        id_map = {}
+        for node in new_plan_graph.get("nodes", []):
+            nid = node["id"]
+            if nid in existing_ids:
+                new_id = next(id_gen)
+                id_map[nid] = new_id
+                nid = new_id
+            else:
+                id_map[node["id"]] = node["id"]
+            # Remove any attributes we explicitly set to avoid duplicate kwargs
+            sanitized = {k: v for k, v in node.items() if k not in {'id','status','output','error','cost','start_time','end_time','execution_time'}}
+            # Use provided status if present else pending
+            node_status = node.get('status','pending')
+            context.plan_graph.add_node(
+                nid,
+                **sanitized,
+                status=node_status,
+                output=None, error=None, cost=0.0,
+                start_time=None, end_time=None, execution_time=0.0
+            )
+        # Add edges
+        for edge in new_plan_graph.get("edges", []):
+            src = id_map.get(edge.get("source"), edge.get("source"))
+            tgt = id_map.get(edge.get("target"), edge.get("target"))
+            # Only add if both in graph
+            if src in context.plan_graph.nodes and tgt in context.plan_graph.nodes:
+                context.plan_graph.add_edge(src, tgt)
+        # Update graph original_query to most recent query for prompt context
+        context.plan_graph.graph['original_query'] = query
+        log_step(f"🔗 Appended {len(new_plan_graph.get('nodes', []))} new nodes (turn {self._conversation_turn})", symbol="➕")
 
     async def _execute_dag(self, context: ExecutionContextManager):
         """Execute DAG with simple output chaining"""
@@ -121,10 +224,14 @@ class AgentLoop4:
             for step_id, result in zip(current_batch, results):
                 if isinstance(result, Exception):
                     context.mark_failed(step_id, str(result))
-                elif result["success"]:
-                    await context.mark_done(step_id, result["output"])
+                    continue
+                if not isinstance(result, dict):
+                    context.mark_failed(step_id, f"Unexpected result type: {type(result)}")
+                    continue
+                if result.get("success"):
+                    await context.mark_done(step_id, result.get("output"))
                 else:
-                    context.mark_failed(step_id, result["error"])
+                    context.mark_failed(step_id, result.get("error"))
 
             if len(ready_steps) > batch_size:
                 await asyncio.sleep(5)
