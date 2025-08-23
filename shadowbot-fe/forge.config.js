@@ -29,6 +29,7 @@ module.exports = {
     makers: [
         {
             name: '@electron-forge/maker-squirrel',
+            platforms: ['win32'],
             config: {
                 name: 'shadow-bot',
                 productName: 'Shadow Bot',
@@ -40,9 +41,17 @@ module.exports = {
         {
             name: '@electron-forge/maker-dmg',
             platforms: ['darwin'],
+            config: {
+                name: 'Shadow Bot',
+                icon: 'src/assets/logo.icns'
+            }
         },
         {
-            name: '@reforged/maker-appimage',
+            name: '@electron-forge/maker-zip',
+            platforms: ['darwin', 'win32'],
+        },
+        {
+            name: '@electron-forge/maker-appimage',
             platforms: ['linux'],
             config: {
                 options: {
