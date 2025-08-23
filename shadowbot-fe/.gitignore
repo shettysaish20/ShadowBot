@@ -1,32 +1,3 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-*.json
-*.env
-/document/
-/faiss_index/
-/media/
-/memory/
-*.pyc 
-*.zip
-*.css
-*.zip
-*.svg
-*.pem
-
-# Virtual environments
-.venv
-
-# mcp server documents and index
-mcp_servers/documents/*
-mcp_servers/faiss_index/*
-!mcp_servers/faiss_index/*.py
-
-## node gitignore files (copied from shadowbot-fe)
 # Logs
 src/data
 logs
