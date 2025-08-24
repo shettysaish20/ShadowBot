@@ -23,6 +23,7 @@ import asyncio
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from flask import Flask, request, jsonify, abort
+from werkzeug.utils import secure_filename
 
 # Local imports (reuse existing code)
 from main import load_server_configs  # re-use config loader
@@ -46,6 +47,9 @@ class SystemState:
         self.jobs: Dict[str, Dict[str, Any]] = {}
         self.lock = threading.Lock()
         self.start_time: Optional[float] = None
+        # Upload directory for /upload endpoint
+        self.upload_dir = Path("media/uploads/api")
+        self.upload_dir.mkdir(parents=True, exist_ok=True)
 
 STATE = SystemState()
 
@@ -201,12 +205,26 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
         job['status'] = 'completed'
         job['finished_at'] = time.time()
         job['duration'] = job['finished_at'] - job['started_at']
+        output_chain = context.plan_graph.graph.get('output_chain', {})
+        # Leaf outputs mapping (truncated)
+        leaf_outputs = {}
+        for lid in leaf_nodes:
+            val = output_chain.get(lid)
+            if isinstance(val, (str, int, float)):
+                leaf_outputs[lid] = val
+            elif isinstance(val, dict):
+                # shallow copy of keys only
+                leaf_outputs[lid] = list(val.keys())
+            else:
+                leaf_outputs[lid] = str(type(val))
         job['result'] = {
             'session_id': session_id,
             'query': query,
             'leaf_nodes': leaf_nodes,
+            'leaf_outputs': leaf_outputs,
             'summary': summary,
             'report': report_info,
+            'output_chain_keys': list(output_chain.keys())
         }
     except asyncio.TimeoutError:
         job['status'] = 'timeout'
@@ -217,6 +235,9 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
         job['status'] = 'failed'
         job['finished_at'] = time.time()
         job['error'] = str(e)
+    finally:
+        # Drop reference to future when done
+        job.pop('future', None)
 
 # Wrapper adding timeout
 async def _job_with_timeout(job_id: str, session_id: str, query: str, files: List[str]):
@@ -255,8 +276,10 @@ def start_system():
     STATE.multi_mcp = MultiMCP(server_configs)
 
     async def _init():
+        assert STATE.multi_mcp is not None, "MultiMCP not set"
         await STATE.multi_mcp.initialize()
 
+    assert STATE.loop is not None, "Async loop not started"
     fut = asyncio.run_coroutine_threadsafe(_init(), STATE.loop)
     fut.result()  # wait for init
 
@@ -297,7 +320,9 @@ def run_job():
     async def schedule():
         await _job_with_timeout(job_id, session_id, query, files)
 
-    asyncio.run_coroutine_threadsafe(schedule(), STATE.loop)
+    assert STATE.loop is not None, "Async loop not started"
+    fut = asyncio.run_coroutine_threadsafe(schedule(), STATE.loop)
+    STATE.jobs[job_id]['future'] = fut
 
     return jsonify({
         'api_version': API_VERSION,
@@ -311,6 +336,8 @@ def get_job(job_id: str):
     job = STATE.jobs.get(job_id)
     if not job:
         abort(404, description='Job not found')
+    include_chain = request.args.get('include_output_chain', 'false').lower() == 'true'
+    max_chain_items = int(request.args.get('max_chain_keys', '50'))
     resp = {
         'api_version': API_VERSION,
         'job_id': job_id,
@@ -323,16 +350,53 @@ def get_job(job_id: str):
         'error': job.get('error')
     }
     if job['status'] == 'completed':
-        resp['result'] = job['result']
+        result_copy = dict(job['result'])
+        if include_chain:
+            # fetch context to extract output_chain
+            session_id_val = job.get('session_id')
+            if isinstance(session_id_val, str):
+                entry = STATE.sessions.get(session_id_val, {})
+                context = entry.get('context')
+            else:
+                context = None
+            if isinstance(context, ExecutionContextManager):
+                chain = context.plan_graph.graph.get('output_chain', {})  # type: ignore[arg-type]
+                trimmed = {}
+                for i, (k, v) in enumerate(chain.items()):
+                    if i >= max_chain_items:
+                        break
+                    if isinstance(v, (str, int, float)):
+                        trimmed[k] = v
+                    elif isinstance(v, dict):
+                        trimmed[k] = {subk: ('<str>' if isinstance(subv, str) and len(subv) > 120 else subv) for subk, subv in list(v.items())[:25]}
+                    else:
+                        trimmed[k] = str(type(v))
+                result_copy['output_chain'] = trimmed
+        resp['result'] = result_copy
     return jsonify(resp)
+
+@app.post('/job/<job_id>/cancel')
+def cancel_job(job_id: str):
+    job = STATE.jobs.get(job_id)
+    if not job:
+        abort(404, description='Job not found')
+    if job.get('status') in {'completed','failed','timeout','canceled'}:
+        return jsonify({'api_version': API_VERSION, 'job_id': job_id, 'status': job['status']})
+    fut = job.get('future')
+    if fut and not fut.done():
+        fut.cancel()
+        job['status'] = 'canceled'
+        job['finished_at'] = time.time()
+        job['error'] = 'Canceled by user'
+    return jsonify({'api_version': API_VERSION, 'job_id': job_id, 'status': job['status']})
 
 @app.get('/sessions/<session_id>')
 def session_info(session_id: str):
     entry = STATE.sessions.get(session_id)
     if not entry:
         abort(404, description='Session not found')
-    context: ExecutionContextManager = entry.get('context')
-    if not context:
+    context = entry.get('context')
+    if not isinstance(context, ExecutionContextManager):
         return jsonify({'api_version': API_VERSION, 'session_id': session_id, 'status': 'empty'})
     G = context.plan_graph
     nodes = []
@@ -356,7 +420,81 @@ def session_info(session_id: str):
         'summary': summary
     })
 
+@app.post('/upload')
+def upload_files():
+    if not STATE.started:
+        abort(400, description='System not started')
+    if 'files' not in request.files:
+        abort(400, description='No files part in request (use multipart/form-data)')
+    saved = []
+    for file in request.files.getlist('files'):
+        if not file or not file.filename:
+            continue
+        fname = secure_filename(file.filename or '')
+        if not fname:
+            continue
+        # NOTE: upload_dir defined on SystemState.__init__
+        dest = STATE.upload_dir / fname  # type: ignore[attr-defined]
+        # Avoid overwrite: add suffix if exists
+        if dest.exists():
+            stem = dest.stem
+            suffix = dest.suffix
+            idx = 2
+            while True:
+                alt = STATE.upload_dir / f"{stem}_{idx}{suffix}"  # type: ignore[attr-defined]
+                if not alt.exists():
+                    dest = alt
+                    break
+                idx += 1
+        file.save(dest)
+        saved.append(str(dest))
+    return jsonify({'api_version': API_VERSION, 'saved_files': saved, 'count': len(saved)})
+
+@app.post('/shutdown')
+def shutdown_system():
+    if not STATE.started:
+        return jsonify({'api_version': API_VERSION, 'status': 'not_started'})
+    # Cancel running jobs
+    for job_id, job in list(STATE.jobs.items()):
+        fut = job.get('future')
+        if fut and not fut.done():
+            fut.cancel()
+            job['status'] = 'canceled'
+            job['finished_at'] = time.time()
+            job['error'] = 'Canceled during shutdown'
+    # Shutdown MultiMCP
+    async def _shutdown():
+        try:
+            if STATE.multi_mcp:
+                await STATE.multi_mcp.shutdown()
+        except Exception as e:
+            log_error(f'Shutdown error: {e}')
+    if STATE.loop is not None:
+        fut = asyncio.run_coroutine_threadsafe(_shutdown(), STATE.loop)
+        try:
+            fut.result(timeout=15)
+        except Exception:
+            pass
+        # Stop loop
+        STATE.loop.call_soon_threadsafe(STATE.loop.stop)
+    STATE.started = False
+    return jsonify({'api_version': API_VERSION, 'status': 'stopped'})
+
+@app.get('/debug/tasks')
+def debug_tasks():
+    if not STATE.started or STATE.loop is None:
+        abort(400, description="System not started")
+    tasks = []
+    for t in asyncio.all_tasks(loop=STATE.loop):
+        tasks.append({
+            "repr": repr(t),
+            "done": t.done(),
+            "coro": getattr(t.get_coro(), "__name__", str(t.get_coro())),
+            "cr_frame": bool(getattr(t.get_coro(), "cr_frame", None))
+        })
+    return jsonify({"tasks": tasks, "count": len(tasks)})
+
 # --------------- Convenience Run ---------------
 if __name__ == '__main__':
     # Run Flask app
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    app.run(host='0.0.0.0', port=8000, debug=False)

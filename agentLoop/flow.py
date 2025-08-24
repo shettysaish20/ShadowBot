@@ -197,6 +197,13 @@ class AgentLoop4:
         while not context.all_done() and iteration < max_iterations:
             iteration += 1
             console.print(visualizer.get_layout())
+
+            # Watchdog: auto-fail steps running too long
+            stuck = context.get_running_over(90)
+            if stuck:
+                for s in stuck:
+                    if context.plan_graph.nodes[s]['status'] == 'running':
+                        context.mark_failed(s, error='watchdog_timeout')
             
             ready_steps = context.get_ready_steps()
             if not ready_steps:

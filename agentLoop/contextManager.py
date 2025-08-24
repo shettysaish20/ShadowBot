@@ -13,7 +13,7 @@ from utils.utils import log_step, log_error
 import pdb
 
 class ExecutionContextManager:
-    def __init__(self, plan_graph: dict, session_id: str = None, original_query: str = None, file_manifest: list = None, debug_mode: bool = False):
+    def __init__(self, plan_graph: dict, session_id: str | None = None, original_query: str | None = None, file_manifest: list | None = None, debug_mode: bool = False):
         # Build NetworkX graph
         self.plan_graph = nx.DiGraph()
         
@@ -209,7 +209,28 @@ class ExecutionContextManager:
             node_data['execution_time'] = (end - start).total_seconds()
             
         log_error(f"❌ {step_id} failed: {error}")
+        # Update overall graph status if all done or ensure not stuck in 'running'
+        self._refresh_overall_status()
         self._auto_save()
+
+    def _refresh_overall_status(self):
+        """Recompute aggregate graph status for convenience (not required for execution)."""
+        # If any node still running keep 'running'
+        statuses = [data.get('status') for nid, data in self.plan_graph.nodes(data=True) if nid != 'ROOT']
+        if any(s == 'running' for s in statuses):
+            self.plan_graph.graph['status'] = 'running'
+            return
+        if all(s == 'completed' for s in statuses):
+            self.plan_graph.graph['status'] = 'completed'
+        elif any(s == 'failed' for s in statuses):
+            # Mixed or all failed
+            if all(s == 'failed' for s in statuses):
+                self.plan_graph.graph['status'] = 'failed'
+            else:
+                self.plan_graph.graph['status'] = 'completed_with_failures'
+        else:
+            # Fallback
+            self.plan_graph.graph['status'] = 'running'
 
     def get_step_data(self, step_id):
         """Get step data"""
@@ -251,6 +272,26 @@ class ExecutionContextManager:
             "total_output_tokens": total_output_tokens,
             "output_chain": self.plan_graph.graph['output_chain']
         }
+
+    # ---------------- Watchdog helpers -----------------
+    def get_running_over(self, seconds: float = 90.0):
+        now = time.time()
+        stuck = []
+        for nid, data in self.plan_graph.nodes(data=True):
+            if data.get('status') == 'running' and data.get('start_time'):
+                try:
+                    start_ts = datetime.fromisoformat(data['start_time']).timestamp()
+                    if now - start_ts > seconds:
+                        stuck.append(nid)
+                except Exception:
+                    continue
+        return stuck
+
+    def mark_stuck_as_failed(self, seconds: float = 90.0):
+        stuck = self.get_running_over(seconds)
+        for nid in stuck:
+            self.mark_failed(nid, error=f'stuck_over_{seconds}s')
+        return stuck
 
     def set_multi_mcp(self, multi_mcp):
         """Set multi_mcp reference"""
