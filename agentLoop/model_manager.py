@@ -64,6 +64,8 @@ class ModelManager:
     async def _gemini_generate(self, prompt: str) -> str:
         try:
             # ✅ CORRECT: Use truly async method
+            import asyncio
+            await asyncio.sleep(10)
             response = await self.client.aio.models.generate_content(
                 model=self.model_info["model"],
                 contents=prompt
