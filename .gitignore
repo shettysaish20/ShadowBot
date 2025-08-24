@@ -6,6 +6,7 @@ dist/
 wheels/
 *.egg-info
 *.json
+!shadowbot-fe/*.json
 *.env
 /document/
 /faiss_index/
