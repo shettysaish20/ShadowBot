@@ -15,15 +15,14 @@ Design:
 - Aborts /run if any provided file path is missing
 """
 from __future__ import annotations
+import os
 import uuid
 import time
 import threading
 import asyncio
-import json
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from flask import Flask, request, jsonify, abort
-from flask_sock import Sock
 from werkzeug.utils import secure_filename
 
 # Local imports (reuse existing code)
@@ -31,17 +30,15 @@ from main import load_server_configs  # re-use config loader
 from mcp_servers.multiMCP import MultiMCP
 from agentLoop.flow import AgentLoop4
 from agentLoop.contextManager import ExecutionContextManager
-from utils.utils import log_error
+from utils_.utils import log_step, log_error
 
 API_VERSION = "v1"
 JOB_TIMEOUT_SECONDS = 120
 
 app = Flask(__name__)
-sock = Sock(app)
 
 class SystemState:
     def __init__(self):
-        # Core runtime state
         self.started: bool = False
         self.loop: Optional[asyncio.AbstractEventLoop] = None
         self.loop_thread: Optional[threading.Thread] = None
@@ -50,14 +47,9 @@ class SystemState:
         self.jobs: Dict[str, Dict[str, Any]] = {}
         self.lock = threading.Lock()
         self.start_time: Optional[float] = None
-
         # Upload directory for /upload endpoint
         self.upload_dir = Path("media/uploads/api")
         self.upload_dir.mkdir(parents=True, exist_ok=True)
-
-        # WebSocket session channels (session_id -> channel dict)
-        self.ws_channels: Dict[str, Dict[str, Any]] = {}
-        self.ws_lock = threading.Lock()
 
 STATE = SystemState()
 
@@ -97,7 +89,7 @@ def _extract_latest_html_report(context: ExecutionContextManager) -> Dict[str, A
 
     formatter_nodes = []
     for n, data in context.plan_graph.nodes(data=True):
-        if data.get('agent') in ('FormatterAgent', 'ClarificationAgent') and data.get('status') == 'completed':
+        if data.get('agent') == 'FormatterAgent' and data.get('status') == 'completed':
             output = data.get('output')
             html_candidate = None
             if isinstance(output, dict):
@@ -163,151 +155,6 @@ def _extract_latest_html_report(context: ExecutionContextManager) -> Dict[str, A
 
     return {'found': False, 'step_id': None, 'path': None, 'html': ''}
 
-# ----------------------- WS Event Dispatch --------------------------
-
-def _get_channel(session_id: str):
-    """Return (or create) a channel data structure for a session.
-
-    Structure:
-      queue: thread-safe queue.Queue for events to send
-      buffer: deque of last 500 events (for replay)
-      seq: monotonically increasing sequence id
-      connections: set of active ws objects
-    """
-    with STATE.ws_lock:
-        ch = STATE.ws_channels.get(session_id)
-        if not ch:
-            from collections import deque
-            import queue
-            ch = {
-                'queue': queue.Queue(),  # standard thread-safe queue
-                'buffer': deque(maxlen=500),
-                'seq': 0,
-                'connections': set()
-            }
-            STATE.ws_channels[session_id] = ch
-        return ch
-
-def ws_send_event(session_id: str, ev_type: str, payload: Dict[str, Any]):
-    """Queue an event for all WebSocket listeners of this session.
-
-    Safe to call from any thread.
-    """
-    try:
-        ch = _get_channel(session_id)
-        ch['seq'] += 1
-        evt = {
-            'seq': ch['seq'],
-            'ts': time.time(),
-            'session_id': session_id,
-            'type': ev_type,
-            'payload': payload
-        }
-        ch['buffer'].append(evt)
-        ch['queue'].put_nowait(evt)
-    except Exception as e:
-        log_error(f"ws_send_event error: {e}")
-
-def _sanitize_html_snippet(html: str, limit: int = 10_000) -> str:
-    try:
-        import re
-        # Remove script & style blocks
-        html = re.sub(r'<script.*?>.*?</script>', '', html, flags=re.IGNORECASE|re.DOTALL)
-        html = re.sub(r'<style.*?>.*?</style>', '', html, flags=re.IGNORECASE|re.DOTALL)
-        # Remove on* attributes (simple)
-        html = re.sub(r'on[a-zA-Z]+="[^"]*"', '', html)
-        # Trim
-        if len(html) > limit:
-            return html[:limit] + '...'
-        return html
-    except Exception:
-        return html[:limit] if html else ''
-
-def _drain_events_loop(ws, ch, last_seq: Optional[int]):
-    """Blocking loop that sends queued events as JSON strings.
-
-    Runs inside the Flask request thread for this WebSocket.
-    """
-    import queue
-    # Optional replay
-    if last_seq is not None:
-        for ev in list(ch['buffer']):
-            if ev['seq'] > last_seq:
-                try:
-                    ws.send(json.dumps(ev))
-                except Exception:
-                    return
-    else:
-        # On initial subscribe without last_seq, replay entire buffer
-        for ev in list(ch['buffer']):
-            try:
-                ws.send(json.dumps(ev))
-            except Exception:
-                return
-    # Drain queue
-    while True:
-        try:
-            ev = ch['queue'].get(timeout=30)
-        except queue.Empty:
-            # keep connection alive; could send heartbeat later
-            continue
-        try:
-            ws.send(json.dumps(ev))
-        except Exception:
-            break
-
-def instrument_step_event(session_id: str, kind: str, data: Dict[str, Any]):
-    ws_send_event(session_id, f'step.{kind}', data)
-
-def instrument_job_event(session_id: str, kind: str, data: Dict[str, Any]):
-    ws_send_event(session_id, f'job.{kind}', data)
-
-# ----------------------- WebSocket Endpoint -------------------------
-
-@sock.route('/ws')
-def websocket_route(ws):  # type: ignore[override]
-    """WebSocket endpoint.
-
-    Client must immediately send a JSON object: {"session_id": "...", "last_seq": <optional_int>}.
-    We reply with an ack event then stream events.
-    """
-    try:
-        first = ws.receive()
-        session_id = None
-        last_seq = None
-        if first:
-            try:
-                obj = json.loads(first)
-                session_id = obj.get('session_id')
-                last_seq = obj.get('last_seq')
-            except Exception:
-                session_id = None
-        if not session_id:
-            try:
-                ws.send(json.dumps({'type': 'ws.error', 'error': 'missing session_id'}))
-            finally:
-                ws.close()
-            return
-        ch = _get_channel(session_id)
-        ch['connections'].add(ws)
-        # Ack
-        ws.send(json.dumps({'type': 'ws.subscribed', 'session_id': session_id, 'last_seq': last_seq}))
-        # Drain existing + live events
-        _drain_events_loop(ws, ch, last_seq)
-    except Exception as e:
-        log_error(f"WebSocket error: {e}")
-    finally:
-        try:
-            ch = _get_channel(session_id) if 'session_id' in locals() and session_id else None
-            if ch:
-                ch['connections'].discard(ws)
-        except Exception:
-            pass
-        try:
-            ws.close()
-        except Exception:
-            pass
-
 def _looks_like_html(content: str) -> bool:
     if not isinstance(content, str) or len(content) < 10:
         return False
@@ -334,44 +181,6 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
             if session_entry is None:
                 # create new session
                 agent_loop = AgentLoop4(STATE.multi_mcp)
-                # Attach instrumentation callbacks
-                def _step_start(step_id, agent, reads, writes, turn):
-                    ws_send_event(session_id, 'step.start', {
-                        'step_id': step_id,
-                        'agent': agent,
-                        'reads': reads,
-                        'writes': writes,
-                        'turn': turn
-                    })
-                def _step_end(step_id, status, duration_ms, error, output_meta, progress):
-                    payload = {
-                        'step_id': step_id,
-                        'status': status,
-                        'duration_ms': round(duration_ms, 2),
-                        'error': error,
-                        'output_meta': output_meta,
-                    }
-                    if isinstance(progress, dict):
-                        # Add minimal progress snapshot
-                        payload['progress'] = {
-                            'completed': progress.get('completed_steps'),
-                            'failed': progress.get('failed_steps'),
-                            'total': progress.get('total_steps'),
-                            'ratio': round((progress.get('completed_steps',0)/ max(progress.get('total_steps',1),1)), 2)
-                        }
-                    ws_send_event(session_id, 'step.end', payload)
-                    # Emit enriched job.status after each step
-                    if isinstance(progress, dict):
-                        ws_send_event(session_id, 'job.status', {
-                            'state': 'running',
-                            'job_id': job_id,
-                            'completed_steps': progress.get('completed_steps'),
-                            'failed_steps': progress.get('failed_steps'),
-                            'total_steps': progress.get('total_steps'),
-                            'progress_ratio': round((progress.get('completed_steps',0)/ max(progress.get('total_steps',1),1)), 2)
-                        })
-                agent_loop.on_step_start = _step_start  # type: ignore[attr-defined]
-                agent_loop.on_step_end = _step_end      # type: ignore[attr-defined]
                 context = None
                 session_entry = {
                     'agent_loop': agent_loop,
@@ -385,7 +194,6 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
                 context = session_entry['context']
 
         # Execute (may extend existing context)
-        instrument_job_event(session_id, 'status', {'state': 'running', 'job_id': job_id})
         context = await agent_loop.run(query, file_manifest, files, context=context)
         session_entry['context'] = context
 
@@ -418,34 +226,15 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
             'report': report_info,
             'output_chain_keys': list(output_chain.keys())
         }
-        instrument_job_event(session_id, 'status', {
-            'state': 'completed',
-            'job_id': job_id,
-            'completed_steps': summary.get('completed_steps'),
-            'failed_steps': summary.get('failed_steps'),
-            'total_steps': summary.get('total_steps'),
-            'progress_ratio': round((summary.get('completed_steps',0)/ max(summary.get('total_steps',1),1)), 2)
-        })
-        if report_info.get('found'):
-            snippet = _sanitize_html_snippet(report_info.get('html','') or '')
-            ws_send_event(session_id, 'report.final', {
-                'step_id': report_info['step_id'],
-                'path': report_info.get('path'),
-                'size': len(report_info.get('html','') or ''),
-                'snippet': snippet,
-                'snippet_truncated': len(snippet) < len(report_info.get('html','') or '')
-            })
     except asyncio.TimeoutError:
         job['status'] = 'timeout'
         job['finished_at'] = time.time()
         job['error'] = 'Job exceeded time limit'
-        instrument_job_event(session_id, 'status', {'state': 'timeout', 'job_id': job_id})
     except Exception as e:
         log_error(f"Job {job_id} failed: {e}")
         job['status'] = 'failed'
         job['finished_at'] = time.time()
         job['error'] = str(e)
-        instrument_job_event(session_id, 'status', {'state': 'failed', 'job_id': job_id, 'error': str(e)})
     finally:
         # Drop reference to future when done
         job.pop('future', None)
@@ -476,7 +265,7 @@ def _validate_run_payload(data: Dict[str, Any]) -> Dict[str, Any]:
 
 # ----------------------- Flask Endpoints ----------------------------
 
-@app.post('/start')
+@app.route('/start', methods=['POST'])
 def start_system():
     if STATE.started:
         return jsonify({'api_version': API_VERSION, 'status': 'already_started'})
@@ -498,7 +287,7 @@ def start_system():
     STATE.start_time = time.time()
     return jsonify({'api_version': API_VERSION, 'status': 'started', 'tool_count': len(STATE.multi_mcp.tool_map)})
 
-@app.get('/health')
+@app.route('/health', methods=['GET'])
 def health():
     return jsonify({
         'api_version': API_VERSION,
@@ -509,7 +298,7 @@ def health():
         'tool_count': len(STATE.multi_mcp.tool_map) if STATE.multi_mcp else 0
     })
 
-@app.post('/run')
+@app.route('/run', methods=['POST'])
 def run_job():
     if not STATE.started:
         abort(400, description='System not started. Call /start first.')
@@ -542,7 +331,7 @@ def run_job():
         'status': 'queued'
     })
 
-@app.get('/job/<job_id>')
+@app.route('/job/<job_id>', methods=['GET'])
 def get_job(job_id: str):
     job = STATE.jobs.get(job_id)
     if not job:
@@ -586,7 +375,7 @@ def get_job(job_id: str):
         resp['result'] = result_copy
     return jsonify(resp)
 
-@app.post('/job/<job_id>/cancel')
+@app.route('/job/<job_id>/cancel', methods=['POST'])
 def cancel_job(job_id: str):
     job = STATE.jobs.get(job_id)
     if not job:
@@ -601,7 +390,7 @@ def cancel_job(job_id: str):
         job['error'] = 'Canceled by user'
     return jsonify({'api_version': API_VERSION, 'job_id': job_id, 'status': job['status']})
 
-@app.get('/sessions/<session_id>')
+@app.route('/sessions/<session_id>', methods=['GET'])
 def session_info(session_id: str):
     entry = STATE.sessions.get(session_id)
     if not entry:
@@ -631,7 +420,7 @@ def session_info(session_id: str):
         'summary': summary
     })
 
-@app.post('/upload')
+@app.route('/upload', methods=['POST'])
 def upload_files():
     if not STATE.started:
         abort(400, description='System not started')
@@ -661,7 +450,7 @@ def upload_files():
         saved.append(str(dest))
     return jsonify({'api_version': API_VERSION, 'saved_files': saved, 'count': len(saved)})
 
-@app.post('/shutdown')
+@app.route('/shutdown', methods=['POST'])
 def shutdown_system():
     if not STATE.started:
         return jsonify({'api_version': API_VERSION, 'status': 'not_started'})
@@ -691,7 +480,7 @@ def shutdown_system():
     STATE.started = False
     return jsonify({'api_version': API_VERSION, 'status': 'stopped'})
 
-@app.get('/debug/tasks')
+@app.route('/debug/tasks', methods=['GET'])
 def debug_tasks():
     if not STATE.started or STATE.loop is None:
         abort(400, description="System not started")
