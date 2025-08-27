@@ -34,6 +34,7 @@ from mcp_servers.multiMCP import MultiMCP
 from agentLoop.flow import AgentLoop4
 from agentLoop.contextManager import ExecutionContextManager
 from utils.utils import log_error
+from api_helpers.history import list_history, load_session_summary, load_session_report_html
 
 API_VERSION = "v1"
 JOB_TIMEOUT_SECONDS = 120
@@ -154,9 +155,8 @@ def _extract_latest_html_report(context: ExecutionContextManager) -> Dict[str, A
             if node_id.startswith('T'):
                 return int(''.join(ch for ch in node_id[1:] if ch.isdigit()))
         except Exception:
-            pass
+            return -1
         return -1
-
     if formatter_nodes:
         # pick node with highest numeric id, fallback latest end_time
         formatter_nodes.sort(key=lambda tup: (_node_numeric(tup[0]), tup[1].get('end_time','')), reverse=True)
@@ -183,7 +183,7 @@ def _extract_latest_html_report(context: ExecutionContextManager) -> Dict[str, A
                 if suffix.startswith('T'):
                     return int(''.join(ch for ch in suffix[1:] if ch.isdigit()))
             except Exception:
-                pass
+                return int(p.stat().st_mtime)
             return int(p.stat().st_mtime)
         existing.sort(key=_file_key, reverse=True)
         latest = existing[0]
@@ -202,10 +202,10 @@ def _get_channel(session_id: str):
     """Return (or create) a channel data structure for a session.
 
     Structure:
-      queue: thread-safe queue.Queue for events to send
-      buffer: deque of last 500 events (for replay)
-      seq: monotonically increasing sequence id
-      connections: set of active ws objects
+    queue: thread-safe queue.Queue for events to send
+    buffer: deque of last 500 events (for replay)
+    seq: monotonically increasing sequence id
+    connections: set of active ws objects
     """
     with STATE.ws_lock:
         ch = STATE.ws_channels.get(session_id)
@@ -435,6 +435,35 @@ def _looks_like_html(content: str) -> bool:
     lowered = content.lstrip()[:150].lower()
     indicators = ['<html', '<div', '<section', '<article', '<header', '<body', '<!doctype', '<h1', '<p', '<main']
     return any(ind in lowered for ind in indicators)
+
+# ----------------------- History Endpoints (Phase 1) -------------------------
+
+@app.get('/history/sessions')
+def history_sessions():
+    limit_param = request.args.get('limit')
+    limit = None
+    if limit_param:
+        try:
+            limit = int(limit_param)
+        except Exception:
+            limit = None
+    data = list_history(limit=limit)
+    return jsonify({'api_version': API_VERSION, 'count': len(data), 'sessions': data})
+
+@app.get('/history/session/<session_id>')
+def history_session_detail(session_id: str):
+    detail = load_session_summary(session_id)
+    if not detail:
+        abort(404, description='Session not found')
+    return jsonify({'api_version': API_VERSION, 'session_id': session_id, 'detail': detail})
+
+@app.get('/history/session/<session_id>/report')
+def history_session_report(session_id: str):
+    html = load_session_report_html(session_id)
+    if html is None:
+        abort(404, description='Report not found')
+    # Return raw html text (client will render in sandbox)
+    return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 # ----------------------- Job Execution ------------------------------
 
