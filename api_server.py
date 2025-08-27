@@ -89,7 +89,7 @@ def _extract_latest_html_report(context: ExecutionContextManager) -> Dict[str, A
 
     formatter_nodes = []
     for n, data in context.plan_graph.nodes(data=True):
-        if data.get('agent') == 'FormatterAgent' and data.get('status') == 'completed':
+        if data.get('agent') in ('FormatterAgent', 'ClarificationAgent') and data.get('status') == 'completed':
             output = data.get('output')
             html_candidate = None
             if isinstance(output, dict):

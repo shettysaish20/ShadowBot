@@ -167,13 +167,14 @@ class AgentLoop4:
             sanitized = {k: v for k, v in node.items() if k not in {'id','status','output','error','cost','start_time','end_time','execution_time'}}
             # Use provided status if present else pending
             node_status = node.get('status','pending')
-            context.plan_graph.add_node(
-                nid,
-                **sanitized,
-                status=node_status,
-                output=None, error=None, cost=0.0,
-                start_time=None, end_time=None, execution_time=0.0
-            )
+            if node_status != "completed":
+                context.plan_graph.add_node(
+                    nid,
+                    **sanitized,
+                    status=node_status,
+                    output=None, error=None, cost=0.0,
+                    start_time=None, end_time=None, execution_time=0.0
+                )
         # Add edges
         for edge in new_plan_graph.get("edges", []):
             src = id_map.get(edge.get("source"), edge.get("source"))
@@ -384,20 +385,20 @@ class AgentLoop4:
             return second_result if second_result["success"] else result
         
         ## FIXED: Check for the code bug in ClarificationAgent
-        if result["success"] and "clarification_request" in result["output"]:
-            log_step(f"🤔 {step_id}: Clarification needed", symbol="❓")
+        # if result["success"] and "clarification_request" in result["output"]:
+        #     log_step(f"🤔 {step_id}: Clarification needed", symbol="❓")
             
-            # Get user input
-            clarification = result["output"].get("clarification_request",{"message": "Please elaborate on your query!"})
-            user_response = await self._get_user_input(clarification["message"])
+        #     # Get user input
+        #     clarification = result["output"].get("clarification_request",{"message": "Please elaborate on your query!"})
+        #     user_response = await self._get_user_input(clarification["message"])
             
-            # CREATE the actual node output (ClarificationAgent doesn't do this)
-            result["output"] = {
-                "user_choice": user_response,
-                "clarification_provided": clarification["message"]
-            }
-            # Mark as successful
-            result["success"] = True
+        #     # CREATE the actual node output (ClarificationAgent doesn't do this)
+        #     result["output"] = {
+        #         "user_choice": user_response,
+        #         "clarification_provided": clarification["message"]
+        #     }
+        #     # Mark as successful
+        #     result["success"] = True
         
         return result
     
