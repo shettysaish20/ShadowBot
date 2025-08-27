@@ -34,7 +34,7 @@ Produce a SINGLE HTML string (no line breaks) containing 6–7 compact sections:
 4. Data Highlights (small table OR inline key:value spans; prefer real figures)
 5. Risks & Uncertainties (2–3 concise bullets— flag ambiguity, missing data, conflicts)
 6. Strategic Recommendations (3 prioritized actions)
-7. Sources / Provenance (list of step IDs / linked sources)
+7. Sources / Provenance (linked sources)
 
 
 OPTIONAL if present & meaningful: Images (max 2) – include only if clearly relevant. Use:
@@ -77,6 +77,7 @@ OUTPUT JSON FORMAT (STRICT):
 
 Rules:
 - Replace T### with the actual write target (from writes) if provided; else use a generic placeholder like overlay_report.
+- NEVER mention any stepIDs or any internal technical keywords ('all_globals_schema', 'session_context', etc.) anywhere in the overlay report. THIS IS MANDATORY.
 - NEVER include raw newlines. Everything must be a single compact HTML string.
 - Do NOT exceed 650 words.
 
