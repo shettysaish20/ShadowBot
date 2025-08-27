@@ -123,3 +123,6 @@ typings/
 out/
 .specstory
 .specstory/
+
+# test notebooks
+*.ipynb

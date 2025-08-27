@@ -20,9 +20,11 @@ import uuid
 import time
 import threading
 import asyncio
+import json
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from flask import Flask, request, jsonify, abort
+from flask_sock import Sock
 from werkzeug.utils import secure_filename
 
 # Local imports (reuse existing code)
@@ -36,9 +38,11 @@ API_VERSION = "v1"
 JOB_TIMEOUT_SECONDS = 120
 
 app = Flask(__name__)
+sock = Sock(app)
 
 class SystemState:
     def __init__(self):
+        # Core runtime state
         self.started: bool = False
         self.loop: Optional[asyncio.AbstractEventLoop] = None
         self.loop_thread: Optional[threading.Thread] = None
@@ -47,9 +51,14 @@ class SystemState:
         self.jobs: Dict[str, Dict[str, Any]] = {}
         self.lock = threading.Lock()
         self.start_time: Optional[float] = None
+
         # Upload directory for /upload endpoint
         self.upload_dir = Path("media/uploads/api")
         self.upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # WebSocket session channels (session_id -> channel dict)
+        self.ws_channels: Dict[str, Dict[str, Any]] = {}
+        self.ws_lock = threading.Lock()
 
 STATE = SystemState()
 
@@ -155,6 +164,136 @@ def _extract_latest_html_report(context: ExecutionContextManager) -> Dict[str, A
 
     return {'found': False, 'step_id': None, 'path': None, 'html': ''}
 
+# ----------------------- WS Event Dispatch --------------------------
+
+def _get_channel(session_id: str):
+    """Return (or create) a channel data structure for a session.
+
+    Structure:
+      queue: thread-safe queue.Queue for events to send
+      buffer: deque of last 500 events (for replay)
+      seq: monotonically increasing sequence id
+      connections: set of active ws objects
+    """
+    with STATE.ws_lock:
+        ch = STATE.ws_channels.get(session_id)
+        if not ch:
+            from collections import deque
+            import queue
+            ch = {
+                'queue': queue.Queue(),  # standard thread-safe queue
+                'buffer': deque(maxlen=500),
+                'seq': 0,
+                'connections': set()
+            }
+            STATE.ws_channels[session_id] = ch
+        return ch
+
+def ws_send_event(session_id: str, ev_type: str, payload: Dict[str, Any]):
+    """Queue an event for all WebSocket listeners of this session.
+
+    Safe to call from any thread.
+    """
+    try:
+        ch = _get_channel(session_id)
+        ch['seq'] += 1
+        evt = {
+            'seq': ch['seq'],
+            'ts': time.time(),
+            'session_id': session_id,
+            'type': ev_type,
+            'payload': payload
+        }
+        ch['buffer'].append(evt)
+        ch['queue'].put_nowait(evt)
+    except Exception as e:
+        log_error(f"ws_send_event error: {e}")
+
+def _drain_events_loop(ws, ch, last_seq: Optional[int]):
+    """Blocking loop that sends queued events as JSON strings.
+
+    Runs inside the Flask request thread for this WebSocket.
+    """
+    import queue
+    # Optional replay
+    if last_seq is not None:
+        for ev in list(ch['buffer']):
+            if ev['seq'] > last_seq:
+                try:
+                    ws.send(json.dumps(ev))
+                except Exception:
+                    return
+    else:
+        # On initial subscribe without last_seq, replay entire buffer
+        for ev in list(ch['buffer']):
+            try:
+                ws.send(json.dumps(ev))
+            except Exception:
+                return
+    # Drain queue
+    while True:
+        try:
+            ev = ch['queue'].get(timeout=30)
+        except queue.Empty:
+            # keep connection alive; could send heartbeat later
+            continue
+        try:
+            ws.send(json.dumps(ev))
+        except Exception:
+            break
+
+def instrument_step_event(session_id: str, kind: str, data: Dict[str, Any]):
+    ws_send_event(session_id, f'step.{kind}', data)
+
+def instrument_job_event(session_id: str, kind: str, data: Dict[str, Any]):
+    ws_send_event(session_id, f'job.{kind}', data)
+
+# ----------------------- WebSocket Endpoint -------------------------
+
+@sock.route('/ws')
+def websocket_route(ws):  # type: ignore[override]
+    """WebSocket endpoint.
+
+    Client must immediately send a JSON object: {"session_id": "...", "last_seq": <optional_int>}.
+    We reply with an ack event then stream events.
+    """
+    try:
+        first = ws.receive()
+        session_id = None
+        last_seq = None
+        if first:
+            try:
+                obj = json.loads(first)
+                session_id = obj.get('session_id')
+                last_seq = obj.get('last_seq')
+            except Exception:
+                session_id = None
+        if not session_id:
+            try:
+                ws.send(json.dumps({'type': 'ws.error', 'error': 'missing session_id'}))
+            finally:
+                ws.close()
+            return
+        ch = _get_channel(session_id)
+        ch['connections'].add(ws)
+        # Ack
+        ws.send(json.dumps({'type': 'ws.subscribed', 'session_id': session_id, 'last_seq': last_seq}))
+        # Drain existing + live events
+        _drain_events_loop(ws, ch, last_seq)
+    except Exception as e:
+        log_error(f"WebSocket error: {e}")
+    finally:
+        try:
+            ch = _get_channel(session_id) if 'session_id' in locals() and session_id else None
+            if ch:
+                ch['connections'].discard(ws)
+        except Exception:
+            pass
+        try:
+            ws.close()
+        except Exception:
+            pass
+
 def _looks_like_html(content: str) -> bool:
     if not isinstance(content, str) or len(content) < 10:
         return False
@@ -194,6 +333,7 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
                 context = session_entry['context']
 
         # Execute (may extend existing context)
+        instrument_job_event(session_id, 'status', {'state': 'running', 'job_id': job_id})
         context = await agent_loop.run(query, file_manifest, files, context=context)
         session_entry['context'] = context
 
@@ -226,15 +366,20 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
             'report': report_info,
             'output_chain_keys': list(output_chain.keys())
         }
+        instrument_job_event(session_id, 'status', {'state': 'completed', 'job_id': job_id})
+        if report_info.get('found'):
+            ws_send_event(session_id, 'report.final', {'step_id': report_info['step_id']})
     except asyncio.TimeoutError:
         job['status'] = 'timeout'
         job['finished_at'] = time.time()
         job['error'] = 'Job exceeded time limit'
+        instrument_job_event(session_id, 'status', {'state': 'timeout', 'job_id': job_id})
     except Exception as e:
         log_error(f"Job {job_id} failed: {e}")
         job['status'] = 'failed'
         job['finished_at'] = time.time()
         job['error'] = str(e)
+        instrument_job_event(session_id, 'status', {'state': 'failed', 'job_id': job_id, 'error': str(e)})
     finally:
         # Drop reference to future when done
         job.pop('future', None)
