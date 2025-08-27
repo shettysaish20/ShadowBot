@@ -43,4 +43,5 @@ dependencies = [
     "matplotlib>=3.10.3",
     "cssutils>=2.11.1",
     "websocket-client>=1.8.0",
+    "pyflakes>=3.4.0",
 ]

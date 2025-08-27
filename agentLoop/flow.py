@@ -11,12 +11,40 @@ from rich.console import Console
 from pathlib import Path
 from action.executor import run_user_code
 
+def _build_output_meta(output):
+    try:
+        if output is None:
+            return None
+        if isinstance(output, (str, int, float)):
+            s = str(output)
+            return {"type": type(output).__name__, "chars": len(s)}
+        if isinstance(output, dict):
+            meta = {"type": "dict", "keys": len(output)}
+            sample_keys = list(output.keys())[:10]
+            meta["sample_keys"] = sample_keys
+            for k in sample_keys:
+                v = output.get(k)
+                if isinstance(v, str) and v.strip():
+                    meta["preview"] = v[:120]
+                    break
+            return meta
+        if isinstance(output, list):
+            return {"type": "list", "len": len(output)}
+        return {"type": type(output).__name__}
+    except Exception:
+        return None
+
 class AgentLoop4:
     def __init__(self, multi_mcp, strategy="conservative"):
         self.multi_mcp = multi_mcp
         self.strategy = strategy
         self.agent_runner = AgentRunner(multi_mcp)
         self._conversation_turn = 0
+        # Instrumentation callbacks (optionally set by API layer)
+        # on_step_start(step_id, agent, reads, writes, turn)
+        # on_step_end(step_id, status, duration_ms, error, output_meta, progress)
+        self.on_step_start = None
+        self.on_step_end = None
 
     async def run(self, query, file_manifest, uploaded_files, context: Optional[ExecutionContextManager] = None):
         """Run planning + execution. If an existing context is supplied, extend the current session.
@@ -223,6 +251,12 @@ class AgentLoop4:
             # Mark running
             for step_id in current_batch:
                 context.mark_running(step_id)
+                if self.on_step_start:
+                    try:
+                        sd = context.get_step_data(step_id)
+                        self.on_step_start(step_id, sd.get('agent'), sd.get('reads', []), sd.get('writes', []), self._conversation_turn)
+                    except Exception:
+                        pass
             
             # Execute batch
             tasks = [self._execute_step(step_id, context) for step_id in current_batch]
@@ -237,9 +271,27 @@ class AgentLoop4:
                     context.mark_failed(step_id, f"Unexpected result type: {type(result)}")
                     continue
                 if result.get("success"):
+                    start_iso = context.plan_graph.nodes[step_id].get('start_time')
                     await context.mark_done(step_id, result.get("output"))
+                    if self.on_step_end:
+                        try:
+                            node_data = context.plan_graph.nodes[step_id]
+                            dur = node_data.get('execution_time', 0.0) * 1000.0
+                            progress = context.get_execution_summary()
+                            self.on_step_end(step_id, 'completed', dur, None, _build_output_meta(node_data.get('output')), progress)
+                        except Exception:
+                            pass
                 else:
-                    context.mark_failed(step_id, result.get("error"))
+                    err = result.get("error")
+                    context.mark_failed(step_id, err)
+                    if self.on_step_end:
+                        try:
+                            node_data = context.plan_graph.nodes[step_id]
+                            dur_ms = node_data.get('execution_time', 0.0) * 1000.0
+                            progress = context.get_execution_summary()
+                            self.on_step_end(step_id, 'failed', dur_ms, err, None, progress)
+                        except Exception:
+                            pass
 
             if len(ready_steps) > batch_size:
                 await asyncio.sleep(5)

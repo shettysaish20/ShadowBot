@@ -15,7 +15,6 @@ Design:
 - Aborts /run if any provided file path is missing
 """
 from __future__ import annotations
-import os
 import uuid
 import time
 import threading
@@ -32,7 +31,7 @@ from main import load_server_configs  # re-use config loader
 from mcp_servers.multiMCP import MultiMCP
 from agentLoop.flow import AgentLoop4
 from agentLoop.contextManager import ExecutionContextManager
-from utils.utils import log_step, log_error
+from utils.utils import log_error
 
 API_VERSION = "v1"
 JOB_TIMEOUT_SECONDS = 120
@@ -209,6 +208,21 @@ def ws_send_event(session_id: str, ev_type: str, payload: Dict[str, Any]):
     except Exception as e:
         log_error(f"ws_send_event error: {e}")
 
+def _sanitize_html_snippet(html: str, limit: int = 10_000) -> str:
+    try:
+        import re
+        # Remove script & style blocks
+        html = re.sub(r'<script.*?>.*?</script>', '', html, flags=re.IGNORECASE|re.DOTALL)
+        html = re.sub(r'<style.*?>.*?</style>', '', html, flags=re.IGNORECASE|re.DOTALL)
+        # Remove on* attributes (simple)
+        html = re.sub(r'on[a-zA-Z]+="[^"]*"', '', html)
+        # Trim
+        if len(html) > limit:
+            return html[:limit] + '...'
+        return html
+    except Exception:
+        return html[:limit] if html else ''
+
 def _drain_events_loop(ws, ch, last_seq: Optional[int]):
     """Blocking loop that sends queued events as JSON strings.
 
@@ -320,6 +334,44 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
             if session_entry is None:
                 # create new session
                 agent_loop = AgentLoop4(STATE.multi_mcp)
+                # Attach instrumentation callbacks
+                def _step_start(step_id, agent, reads, writes, turn):
+                    ws_send_event(session_id, 'step.start', {
+                        'step_id': step_id,
+                        'agent': agent,
+                        'reads': reads,
+                        'writes': writes,
+                        'turn': turn
+                    })
+                def _step_end(step_id, status, duration_ms, error, output_meta, progress):
+                    payload = {
+                        'step_id': step_id,
+                        'status': status,
+                        'duration_ms': round(duration_ms, 2),
+                        'error': error,
+                        'output_meta': output_meta,
+                    }
+                    if isinstance(progress, dict):
+                        # Add minimal progress snapshot
+                        payload['progress'] = {
+                            'completed': progress.get('completed_steps'),
+                            'failed': progress.get('failed_steps'),
+                            'total': progress.get('total_steps'),
+                            'ratio': round((progress.get('completed_steps',0)/ max(progress.get('total_steps',1),1)), 2)
+                        }
+                    ws_send_event(session_id, 'step.end', payload)
+                    # Emit enriched job.status after each step
+                    if isinstance(progress, dict):
+                        ws_send_event(session_id, 'job.status', {
+                            'state': 'running',
+                            'job_id': job_id,
+                            'completed_steps': progress.get('completed_steps'),
+                            'failed_steps': progress.get('failed_steps'),
+                            'total_steps': progress.get('total_steps'),
+                            'progress_ratio': round((progress.get('completed_steps',0)/ max(progress.get('total_steps',1),1)), 2)
+                        })
+                agent_loop.on_step_start = _step_start  # type: ignore[attr-defined]
+                agent_loop.on_step_end = _step_end      # type: ignore[attr-defined]
                 context = None
                 session_entry = {
                     'agent_loop': agent_loop,
@@ -366,9 +418,23 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
             'report': report_info,
             'output_chain_keys': list(output_chain.keys())
         }
-        instrument_job_event(session_id, 'status', {'state': 'completed', 'job_id': job_id})
+        instrument_job_event(session_id, 'status', {
+            'state': 'completed',
+            'job_id': job_id,
+            'completed_steps': summary.get('completed_steps'),
+            'failed_steps': summary.get('failed_steps'),
+            'total_steps': summary.get('total_steps'),
+            'progress_ratio': round((summary.get('completed_steps',0)/ max(summary.get('total_steps',1),1)), 2)
+        })
         if report_info.get('found'):
-            ws_send_event(session_id, 'report.final', {'step_id': report_info['step_id']})
+            snippet = _sanitize_html_snippet(report_info.get('html','') or '')
+            ws_send_event(session_id, 'report.final', {
+                'step_id': report_info['step_id'],
+                'path': report_info.get('path'),
+                'size': len(report_info.get('html','') or ''),
+                'snippet': snippet,
+                'snippet_truncated': len(snippet) < len(report_info.get('html','') or '')
+            })
     except asyncio.TimeoutError:
         job['status'] = 'timeout'
         job['finished_at'] = time.time()

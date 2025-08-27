@@ -2856,6 +2856,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyflakes"
+version = "3.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/dc/fd034dc20b4b264b3d015808458391acbf9df40b1e54750ef175d39180b1/pyflakes-3.4.0.tar.gz", hash = "sha256:b24f96fafb7d2ab0ec5075b7350b3d2d2218eab42003821c06344973d3ea2f58", size = 64669, upload_time = "2025-06-20T18:45:27.834Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c2/2f/81d580a0fb83baeb066698975cb14a618bdbed7720678566f1b046a95fe8/pyflakes-3.4.0-py2.py3-none-any.whl", hash = "sha256:f742a7dbd0d9cb9ea41e9a24a918996e8170c799fa528688d40dd582c8265f4f", size = 63551, upload_time = "2025-06-20T18:45:26.937Z" },
+]
+
+[[package]]
 name = "pygments"
 version = "2.19.1"
 source = { registry = "https://pypi.org/simple" }
@@ -3226,6 +3235,7 @@ dependencies = [
     { name = "posthog" },
     { name = "psutil" },
     { name = "pydantic" },
+    { name = "pyflakes" },
     { name = "pymupdf4llm" },
     { name = "pyyaml" },
     { name = "rapidfuzz" },
@@ -3268,6 +3278,7 @@ requires-dist = [
     { name = "posthog", specifier = ">=5.4.0" },
     { name = "psutil", specifier = ">=7.0.0" },
     { name = "pydantic", specifier = ">=2.11.3" },
+    { name = "pyflakes", specifier = ">=3.4.0" },
     { name = "pymupdf4llm", specifier = ">=0.0.21" },
     { name = "pyyaml" },
     { name = "rapidfuzz", specifier = ">=3.13.0" },
