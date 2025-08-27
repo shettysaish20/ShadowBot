@@ -21,7 +21,9 @@ import threading
 import asyncio
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
+import re
+import queue
 from flask import Flask, request, jsonify, abort
 from flask_sock import Sock
 from werkzeug.utils import secure_filename
@@ -35,6 +37,10 @@ from utils.utils import log_error
 
 API_VERSION = "v1"
 JOB_TIMEOUT_SECONDS = 120
+HEARTBEAT_INTERVAL = 15
+PAYLOAD_MAX_BYTES = 32 * 1024  # 32KB cap for entire payload (approx)
+CHANNEL_IDLE_SECONDS = 1800  # 30 minutes
+CHANNEL_SWEEP_INTERVAL = 300  # 5 minutes
 
 app = Flask(__name__)
 sock = Sock(app)
@@ -60,6 +66,33 @@ class SystemState:
         self.ws_lock = threading.Lock()
 
 STATE = SystemState()
+
+# ----------------------- Channel Cleanup Thread --------------------
+_cleanup_thread_started = False
+def _start_channel_cleanup():
+    global _cleanup_thread_started
+    if _cleanup_thread_started:
+        return
+    _cleanup_thread_started = True
+    def _sweeper():
+        while True:
+            try:
+                now = time.time()
+                with STATE.ws_lock:
+                    to_delete = []
+                    for sid, ch in list(STATE.ws_channels.items()):
+                        if ch.get('connections'):
+                            continue
+                        last_act = ch.get('last_activity', now)
+                        if now - last_act > CHANNEL_IDLE_SECONDS:
+                            to_delete.append(sid)
+                    for sid in to_delete:
+                        STATE.ws_channels.pop(sid, None)
+            except Exception as e:
+                log_error(f"channel cleanup error: {e}")
+            time.sleep(CHANNEL_SWEEP_INTERVAL)
+    t = threading.Thread(target=_sweeper, daemon=True)
+    t.start()
 
 # ----------------------- Async Loop Management -----------------------
 
@@ -183,10 +216,53 @@ def _get_channel(session_id: str):
                 'queue': queue.Queue(),  # standard thread-safe queue
                 'buffer': deque(maxlen=500),
                 'seq': 0,
-                'connections': set()
+                'connections': set(),
+                'session_id': session_id,
+                'last_activity': time.time()
             }
             STATE.ws_channels[session_id] = ch
         return ch
+
+def _truncate_payload(ev_type: str, payload: Dict[str, Any]) -> Tuple[Dict[str, Any], bool, int]:
+    """Ensure payload (alone) when JSON-serialized fits under PAYLOAD_MAX_BYTES.
+    Strategy: if too large, truncate large string fields, then mark truncated flag.
+    Returns (possibly modified payload, truncated_flag, original_size_bytes).
+    """
+    try:
+        encoded = json.dumps(payload, ensure_ascii=False)
+        size = len(encoded.encode('utf-8'))
+        if size <= PAYLOAD_MAX_BYTES:
+            return payload, False, size
+        # Work on a shallow copy
+        work = dict(payload)
+        # Identify large string fields
+        str_fields = []
+        for k, v in work.items():
+            if isinstance(v, str) and len(v) > 512:
+                str_fields.append((k, len(v)))
+        # Sort largest first
+        str_fields.sort(key=lambda x: x[1], reverse=True)
+        for k, _ in str_fields:
+            v = work[k]
+            # aggressive slice proportionally until under limit
+            # heuristic: keep first 4000 chars max then shrink progressively
+            keep = min(4000, max(512, int(len(v) * 0.3)))
+            work[k] = v[:keep] + '...'
+            encoded = json.dumps(work, ensure_ascii=False)
+            if len(encoded.encode('utf-8')) <= PAYLOAD_MAX_BYTES:
+                return work, True, size
+        # Final hard cut: serialize then slice bytes (unsafe for multibyte but acceptable dev) -> fallback
+        b = json.dumps(work, ensure_ascii=False).encode('utf-8')
+        if len(b) > PAYLOAD_MAX_BYTES:
+            b = b[:PAYLOAD_MAX_BYTES-4] + b'...'
+            try:
+                # Attempt to load truncated JSON (likely broken) so wrap
+                work = { 'truncated_blob': b.decode('utf-8', errors='ignore') }
+            except Exception:
+                work = { 'truncated_blob': '<binary>' }
+        return work, True, size
+    except Exception:
+        return payload, False, 0
 
 def ws_send_event(session_id: str, ev_type: str, payload: Dict[str, Any]):
     """Queue an event for all WebSocket listeners of this session.
@@ -196,15 +272,29 @@ def ws_send_event(session_id: str, ev_type: str, payload: Dict[str, Any]):
     try:
         ch = _get_channel(session_id)
         ch['seq'] += 1
+        payload, truncated, original_size = _truncate_payload(ev_type, payload)
         evt = {
             'seq': ch['seq'],
             'ts': time.time(),
             'session_id': session_id,
             'type': ev_type,
-            'payload': payload
+            'payload': payload,
+            **({'truncated': True, 'original_size': original_size} if truncated else {})
         }
         ch['buffer'].append(evt)
         ch['queue'].put_nowait(evt)
+        ch['last_activity'] = time.time()
+        # Track job status metadata for periodic emission
+        if ev_type == 'job.status':
+            ch['last_job_status'] = dict(payload)
+            ch['last_job_status_emit'] = time.time()
+            job_id = payload.get('job_id')
+            if job_id:
+                ch['current_job_id'] = job_id
+                # Record job start if not set
+                if 'job_started_at' not in ch:
+                    job_rec = STATE.jobs.get(job_id, {})
+                    ch['job_started_at'] = job_rec.get('started_at', time.time())
     except Exception as e:
         log_error(f"ws_send_event error: {e}")
 
@@ -223,18 +313,30 @@ def _sanitize_html_snippet(html: str, limit: int = 10_000) -> str:
     except Exception:
         return html[:limit] if html else ''
 
-def _drain_events_loop(ws, ch, last_seq: Optional[int]):
+def _drain_events_loop(ws, session_id: str, ch, last_seq: Optional[int]):
     """Blocking loop that sends queued events as JSON strings.
 
     Runs inside the Flask request thread for this WebSocket.
     """
     import queue
-    # Optional replay
+    # Optional replay with gap detection
+    if last_seq is not None:
+        if ch['buffer']:
+            oldest_seq = ch['buffer'][0]['seq']
+        else:
+            oldest_seq = ch['seq']
+        if last_seq > ch['seq']:
+            ws_send_event(session_id, 'ws.replay.gap', {'reason': 'ahead_of_server', 'requested_seq': last_seq, 'latest_seq': ch['seq']})
+        elif last_seq < oldest_seq - 1:
+            ws_send_event(session_id, 'ws.replay.gap', {'reason': 'buffer_overflow', 'requested_seq': last_seq, 'oldest_available': oldest_seq, 'latest_seq': ch['seq']})
+    # Replay
+    last_replayed_seq = None
     if last_seq is not None:
         for ev in list(ch['buffer']):
             if ev['seq'] > last_seq:
                 try:
                     ws.send(json.dumps(ev))
+                    last_replayed_seq = ev['seq'] if (last_replayed_seq is None or ev['seq'] > last_replayed_seq) else last_replayed_seq
                 except Exception:
                     return
     else:
@@ -242,16 +344,34 @@ def _drain_events_loop(ws, ch, last_seq: Optional[int]):
         for ev in list(ch['buffer']):
             try:
                 ws.send(json.dumps(ev))
+                last_replayed_seq = ev['seq'] if (last_replayed_seq is None or ev['seq'] > last_replayed_seq) else last_replayed_seq
             except Exception:
                 return
     # Drain queue
+    last_hb = time.time()
     while True:
         try:
             ev = ch['queue'].get(timeout=30)
         except queue.Empty:
-            # keep connection alive; could send heartbeat later
+            now = time.time()
+            if now - last_hb >= HEARTBEAT_INTERVAL:
+                # Heartbeat includes last seq
+                ws_send_event(session_id, 'ws.heartbeat', {'last_seq': ch['seq']})
+                last_hb = now
+            # Periodic job.status refresh (every 3s) if job still running
+            if 'last_job_status' in ch and ch.get('last_job_status', {}).get('state') == 'running':
+                last_emit = ch.get('last_job_status_emit', 0)
+                if now - last_emit >= 3:
+                    js = dict(ch['last_job_status'])
+                    # update elapsed
+                    if 'job_started_at' in ch:
+                        js['elapsed_ms'] = int((now - ch['job_started_at']) * 1000)
+                    ws_send_event(session_id, 'job.status', js)
             continue
         try:
+            # Suppress duplicate if already replayed
+            if last_replayed_seq is not None and ev.get('seq') <= last_replayed_seq:
+                continue
             ws.send(json.dumps(ev))
         except Exception:
             break
@@ -291,9 +411,10 @@ def websocket_route(ws):  # type: ignore[override]
         ch = _get_channel(session_id)
         ch['connections'].add(ws)
         # Ack
-        ws.send(json.dumps({'type': 'ws.subscribed', 'session_id': session_id, 'last_seq': last_seq}))
+        ws.send(json.dumps({'type': 'ws.subscribed', 'session_id': session_id, 'last_seq': last_seq, 'latest_seq': ch['seq'], 'buffer_size': len(ch['buffer']), 'buffer_cap': ch['buffer'].maxlen}))
+        # Reserved future event family: clarification.request / clarification.response
         # Drain existing + live events
-        _drain_events_loop(ws, ch, last_seq)
+        _drain_events_loop(ws, session_id, ch, last_seq)
     except Exception as e:
         log_error(f"WebSocket error: {e}")
     finally:
@@ -360,15 +481,26 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
                             'ratio': round((progress.get('completed_steps',0)/ max(progress.get('total_steps',1),1)), 2)
                         }
                     ws_send_event(session_id, 'step.end', payload)
+                    if status == 'failed':
+                        # Emit step.error event
+                        kind = 'timeout' if (error and 'timeout' in str(error).lower()) else 'error'
+                        ws_send_event(session_id, 'step.error', {
+                            'step_id': step_id,
+                            'error_kind': kind,
+                            'message': (str(error) or '')[:400]
+                        })
                     # Emit enriched job.status after each step
                     if isinstance(progress, dict):
+                        start_at = STATE.jobs.get(job_id, {}).get('started_at')
+                        elapsed_ms = int((time.time() - start_at) * 1000) if start_at else None
                         ws_send_event(session_id, 'job.status', {
                             'state': 'running',
                             'job_id': job_id,
                             'completed_steps': progress.get('completed_steps'),
                             'failed_steps': progress.get('failed_steps'),
                             'total_steps': progress.get('total_steps'),
-                            'progress_ratio': round((progress.get('completed_steps',0)/ max(progress.get('total_steps',1),1)), 2)
+                            'progress_ratio': round((progress.get('completed_steps',0)/ max(progress.get('total_steps',1),1)), 2),
+                            **({'elapsed_ms': elapsed_ms} if elapsed_ms is not None else {})
                         })
                 agent_loop.on_step_start = _step_start  # type: ignore[attr-defined]
                 agent_loop.on_step_end = _step_end      # type: ignore[attr-defined]
@@ -385,7 +517,7 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
                 context = session_entry['context']
 
         # Execute (may extend existing context)
-        instrument_job_event(session_id, 'status', {'state': 'running', 'job_id': job_id})
+        instrument_job_event(session_id, 'status', {'state': 'running', 'job_id': job_id, 'elapsed_ms': 0})
         context = await agent_loop.run(query, file_manifest, files, context=context)
         session_entry['context'] = context
 
@@ -418,13 +550,15 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
             'report': report_info,
             'output_chain_keys': list(output_chain.keys())
         }
+        elapsed_ms = int((time.time() - job['started_at']) * 1000) if job.get('started_at') else None
         instrument_job_event(session_id, 'status', {
             'state': 'completed',
             'job_id': job_id,
             'completed_steps': summary.get('completed_steps'),
             'failed_steps': summary.get('failed_steps'),
             'total_steps': summary.get('total_steps'),
-            'progress_ratio': round((summary.get('completed_steps',0)/ max(summary.get('total_steps',1),1)), 2)
+            'progress_ratio': round((summary.get('completed_steps',0)/ max(summary.get('total_steps',1),1)), 2),
+            **({'elapsed_ms': elapsed_ms} if elapsed_ms is not None else {})
         })
         if report_info.get('found'):
             snippet = _sanitize_html_snippet(report_info.get('html','') or '')
@@ -433,19 +567,24 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
                 'path': report_info.get('path'),
                 'size': len(report_info.get('html','') or ''),
                 'snippet': snippet,
-                'snippet_truncated': len(snippet) < len(report_info.get('html','') or '')
+                'snippet_truncated': len(snippet) < len(report_info.get('html','') or ''),
+                'content_type': 'text/html',
+                'snippet_chars': len(snippet),
+                'sanitized': True
             })
     except asyncio.TimeoutError:
         job['status'] = 'timeout'
         job['finished_at'] = time.time()
         job['error'] = 'Job exceeded time limit'
-        instrument_job_event(session_id, 'status', {'state': 'timeout', 'job_id': job_id})
+        instrument_job_event(session_id, 'status', {'state': 'timeout', 'job_id': job_id, 'elapsed_ms': int((time.time() - job['started_at']) * 1000) if job.get('started_at') else None})
+        ws_send_event(session_id, 'job.error', {'job_id': job_id, 'state': 'timeout', 'error': 'Job exceeded time limit'})
     except Exception as e:
         log_error(f"Job {job_id} failed: {e}")
         job['status'] = 'failed'
         job['finished_at'] = time.time()
         job['error'] = str(e)
-        instrument_job_event(session_id, 'status', {'state': 'failed', 'job_id': job_id, 'error': str(e)})
+        instrument_job_event(session_id, 'status', {'state': 'failed', 'job_id': job_id, 'error': str(e), 'elapsed_ms': int((time.time() - job['started_at']) * 1000) if job.get('started_at') else None})
+        ws_send_event(session_id, 'job.error', {'job_id': job_id, 'state': 'failed', 'error': str(e)[:400]})
     finally:
         # Drop reference to future when done
         job.pop('future', None)
@@ -495,6 +634,8 @@ def start_system():
     fut.result()  # wait for init
 
     STATE.started = True
+    # Launch background channel cleanup sweeper to purge idle websocket channels
+    _start_channel_cleanup()
     STATE.start_time = time.time()
     return jsonify({'api_version': API_VERSION, 'status': 'started', 'tool_count': len(STATE.multi_mcp.tool_map)})
 
