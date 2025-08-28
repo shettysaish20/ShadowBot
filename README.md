@@ -9,5 +9,8 @@
 # How much money did Anmol Singh paid to DLF to buy an apartment in Camelias indirectly? Search local storage agian?
 # What are the main differences between Mercedes S Class end E Class. Reply back in markdown list. 
 # Who is the current chairman of DLF? Search local documents. 
+# Tell me about linked lists
+# What are DAGs (Directed Acyclic Graphs), how they work and write a sample code to explain the same. 
+# Write a sample code for DAGs (Directed Acyclic Graphs)
 
 

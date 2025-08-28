@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formatted Python Code for Directed Acyclic Graphs (DAGs)</title>
+  <style>
+    /* Base styles */
+    :root {
+      --bg-light: #ffffff;
+      --bg-dark: #0a0a0a;
+      --text-light: #111111;
+      --text-dark: #f1f1f1;
+      --border-light: #000000;
+      --border-dark: #ffffff;
+      --font-sans: 'Inter', 'San Francisco', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-serif: 'EB Garamond', 'New York', 'Georgia', serif;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans);
+      font-size: 18px;
+      background-color: var(--bg-light);
+      color: var(--text-light);
+      line-height: 1.75;
+      transition: background 0.3s, color 0.3s, font-family 0.3s;
+    }
+    
+    html.dark, body.dark {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 60px auto;
+      padding: 0 20px;
+      background-color: var(--bg-light);
+      transition: background-color 0.3s;
+    }
+    html.dark .container, body.dark .container {
+      background-color: var(--bg-dark);
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-weight: 600;
+      margin-top: 2.5em;
+      margin-bottom: 0.8em;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      border-bottom: 0.5px solid var(--border-light);
+      padding-bottom: 0.2em;
+    }
+    html.dark h1, body.dark h1 {
+      border-color: var(--border-dark);
+    }
+
+    h2 {
+      font-size: 1.5rem;
+    }
+
+    ul, ol {
+      padding-left: 1.5rem;
+      margin: 1rem 0;
+    }
+
+    p {
+      margin-bottom: 1rem;
+    }
+
+    .controls {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      display: flex;
+      gap: 14px;
+      font-size: 0.9rem;
+      z-index: 999;
+    }
+
+    .controls button {
+      all: unset;
+      cursor: pointer;
+      padding: 2px 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      font-weight: 500;
+      color: inherit;
+      opacity: 0.6;
+      transition: opacity 0.3s, background-color 0.3s;
+    }
+    .controls button:hover {
+      opacity: 1;
+    }
+    html.dark .controls button, body.dark .controls button {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .footer {
+      font-size: 0.55rem;
+      text-align: center;
+      margin-top: 2rem;
+      color: #aaa;
+    }
+
+    @media print {
+      .controls { display: none; }
+    }
+
+    
+        /* Content Images Styling */
+        .container img:not(.carousel-slide img) {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 1.5rem auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        html.dark .container img:not(.carousel-slide img), 
+        body.dark .container img:not(.carousel-slide img) {
+            box-shadow: 0 2px 8px rgba(255,255,255,0.1);
+        }
+        
+        /* Remove any remaining inline width/height styles */
+        .container img[style*="width"] {
+            width: auto !important;
+            max-width: 100% !important;
+        }
+        .container img[style*="height"] {
+            height: auto !important;
+        }
+        
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button onclick="toggleDark()">Th</button>
+    <button onclick="toggleFont()">Aa</button>
+    <button onclick="toggleEmojis()">Em</button>
+  </div>
+  <div class="container" id="main-container">
+    <h1>Formatted Python Code for Directed Acyclic Graphs (DAGs)</h1><h2>Code Description</h2><p>This Python code defines a Directed Acyclic Graph (DAG) data structure, which includes functionalities for adding nodes and edges, checking for cycles, and performing topological sorting. The code is designed to be easy to understand and use, with detailed comments explaining each part of the implementation.</p><h2>Author</h2><p>AI Assistant</p><h2>Date</h2><p>October 26, 2023</p><pre><code>class DAGNode:
+    def __init__(self, name):
+        """
+        Initialize a DAG node with a given name.
+
+        Parameters:
+        - name (str): The name of the node.
+        """
+        self.name = name
+        self.parents = []  # List of parent nodes
+        self.children = [] # List of child nodes
+
+class DAG:
+    def __init__(self):
+        """
+        Initialize an empty DAG.
+
+        The DAG is represented using a dictionary of nodes,
+        where each node is an instance of the DAGNode class.
+        """
+        self.nodes = {}
+
+    def add_node(self, node_name):
+        """
+        Add a new node to the DAG.
+
+        If the node already exists, a message is printed.
+
+        Parameters:
+        - node_name (str): The name of the node to add.
+        """
+        if node_name not in self.nodes:
+            self.nodes[node_name] = DAGNode(node_name)
+        else:
+            print(f"Node {node_name} already exists.")
+
+    def add_edge(self, parent_name, child_name):
+        """
+        Add a directed edge from parent to child.
+
+        If either the parent or child node does not exist, an error message is printed.
+
+        Parameters:
+        - parent_name (str): The name of the parent node.
+        - child_name (str): The name of the child node.
+        """
+        if parent_name not in self.nodes or child_name not in self.nodes:
+            print("One or both nodes do not exist.  Please add the nodes first before adding the edge.")
+            return
+
+        parent_node = self.nodes[parent_name]
+        child_node = self.nodes[child_name]
+
+        if child_node not in parent_node.children:
+            parent_node.children.append(child_node)
+        if parent_node not in child_node.parents:
+            child_node.parents.append(parent_node)
+
+    def has_cycle_util(self, node_name, visited, stack):
+        """
+        Utility function to check for cycles using DFS (Depth-First Search).
+
+        Parameters:
+        - node_name (str): The name of the current node being visited.
+        - visited (dict): A dictionary to track visited nodes.
+        - stack (dict): A dictionary to track nodes currently in the recursion stack.
+
+        Returns:
+        - bool: True if a cycle is found, False otherwise.
+        """
+        visited[node_name] = True
+        stack[node_name] = True
+
+        for child_node in self.nodes[node_name].children:
+            child_name = child_node.name
+            if not visited[child_name]:
+                if self.has_cycle_util(child_name, visited, stack):
+                    return True
+            elif stack[child_name]:
+                return True
+
+        stack[node_name] = False
+        return False
+
+    def has_cycle(self):
+        """
+        Check if the DAG contains any cycles.
+
+        This function uses the has_cycle_util function to perform a DFS on the graph.
+
+        Returns:
+        - bool: True if the DAG contains a cycle, False otherwise.
+        """
+        visited = {node_name: False for node_name in self.nodes}
+        stack = {node_name: False for node_name in self.nodes}
+
+        for node_name in self.nodes:
+            if not visited[node_name]:
+                if self.has_cycle_util(node_name, visited, stack):
+                    return True
+        return False
+
+    def topological_sort_util(self, node_name, visited, stack):
+        """
+        Utility function for topological sorting using DFS.
+
+        Parameters:
+        - node_name (str): The name of the current node being visited.
+        - visited (dict): A dictionary to track visited nodes.
+        - stack (list): A list to store the topological order of nodes.
+        """
+        visited[node_name] = True
+
+        for child_node in self.nodes[node_name].children:
+            child_name = child_node.name
+            if not visited[child_name]:
+                self.topological_sort_util(child_name, visited, stack)
+
+        stack.insert(0, node_name)
+
+    def topological_sort(self):
+        """
+        Perform topological sorting on the DAG.
+
+        This function uses the topological_sort_util function to perform a DFS on the graph.
+
+        Returns:
+        - list: A list of nodes in topological order.
+        """
+        visited = {node_name: False for node_name in self.nodes}
+        stack = []
+
+        for node_name in self.nodes:
+            if not visited[node_name]:
+                self.topological_sort_util(child_name, visited, stack)
+
+        return stack
+
+# Example Usage:
+dag = DAG()
+
+# Add nodes
+# Placeholder: Add your nodes here
+nodes_to_add = [\'A\', \'B\', \'C\', \'D\', \'E\']
+for node in nodes_to_add:
+    dag.add_node(node)
+
+# Add edges
+# Placeholder: Define your edges here
+edges_to_add = [(\'A\', \'B\'), (\'A\', \'C\'), (\'B\', \'D\'), (\'C\', \'E\')]
+for parent, child in edges_to_add:
+    dag.add_edge(parent, child)
+
+# Check for cycles
+if dag.has_cycle():
+    print("The DAG contains a cycle.")
+else:
+    print("The DAG does not contain any cycles.")
+
+# Perform topological sort
+topological_order = dag.topological_sort()
+print("Topological order:", topological_order)
+</code></pre><!-- Broken image removed: https://miro.medium.com/v1/resize:fit:1400/1*y6bvPmLFyEsyE2EjVt4_qg.png --><h2>SQL Right Join Example</h2><p>This SQL query demonstrates a right join, which returns all rows from the right table and the matching rows from the left table. If there is no match in the left table, it returns NULL values for the left table columns.</p><!-- Broken image removed: https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Right_Join.svg/600px-Right_Join.svg.png --><pre><code>SELECT
+    orders.order_id,
+    customers.customer_name
+FROM
+    orders
+RIGHT JOIN
+    customers ON orders.customer_id = customers.customer_id;
+</code></pre><h2>Bash Script for Disk Space Monitoring</h2><p>This bash script automates the monitoring of disk space. It checks the disk usage and sends an alert if the usage exceeds a certain threshold (e.g., 80%).</p><pre><code>#!/bin/bash
+
+# Set the threshold for disk usage percentage
+THRESHOLD=80
+
+# Get the current disk usage percentage
+USAGE=$(df -h / | awk \'NR==2{print $5}\' | tr -d \'%')
+
+# Check if the disk usage exceeds the threshold
+if [ $USAGE -gt $THRESHOLD ]; then
+    echo "Disk usage is above ${THRESHOLD}%: ${USAGE}%" | mail -s "Disk Space Alert" your_email@example.com
+else
+    echo "Disk usage is normal: ${USAGE}%"
+fi
+</code></pre>
+    <div class="footer">
+      <p>Generated by Seraphine on 2025-08-07 23:23:57 · Session ID: 54589106</p>
+    </div>
+  </div>
+  <script>
+    let emojisHidden = true; /* Start with emojis hidden */
+    let originalContent = '';
+
+    function toggleDark() {
+      /* Toggle dark class on BOTH html and body elements */
+      document.documentElement.classList.toggle('dark');
+      document.body.classList.toggle('dark');
+    }
+
+    function toggleFont() {
+      const current = getComputedStyle(document.body).fontFamily;
+      const isSerif = current.includes("Georgia");
+      document.body.style.fontFamily = isSerif ? 'var(--font-sans)' : 'var(--font-serif)';
+    }
+
+    function toggleEmojis() {
+      const container = document.getElementById('main-container');
+      
+      if (emojisHidden) {
+        /* Restore original content (show emojis) */
+        if (originalContent) {
+          container.innerHTML = originalContent;
+        }
+        emojisHidden = false;
+      } else {
+        /* Store original content and remove emojis */
+        if (!originalContent) {
+          originalContent = container.innerHTML;
+        }
+        /* ✅ FIXED: Comprehensive emoji regex that includes ALL emoji ranges */
+        const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{2100}-\u{214F}]|[\u{1F000}-\u{1F02F}]|[\u{1F0A0}-\u{1F0FF}]|[\u{1F100}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F910}-\u{1F96B}]|[\u{1F980}-\u{1F9E0}]/gu;
+        container.innerHTML = container.innerHTML.replace(emojiRegex, '');
+        emojisHidden = true;
+      }
+    }
+
+    /* Initialize with emojis hidden on page load */
+    window.addEventListener('load', function() {
+      const container = document.getElementById('main-container');
+      /* Store original content first */
+      originalContent = container.innerHTML;
+      /* Then remove emojis by default */
+      /* ✅ FIXED: Same comprehensive emoji regex */
+      const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{2100}-\u{214F}]|[\u{1F000}-\u{1F02F}]|[\u{1F0A0}-\u{1F0FF}]|[\u{1F100}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F910}-\u{1F96B}]|[\u{1F980}-\u{1F9E0}]/gu;
+      container.innerHTML = container.innerHTML.replace(emojiRegex, '');
+    });
+
+    
+  </script>
+</body>
+</html>
