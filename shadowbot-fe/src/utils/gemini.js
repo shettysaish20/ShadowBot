@@ -12,115 +12,118 @@ const BACKEND_API_BASE_URL = `http://${BACKEND_API_HOST}:${BACKEND_API_PORT}`;
 
 // Helper function to make HTTP requests to backend API
 function makeHttpRequest(path, method = 'GET', data = null) {
- console.log(`=== Making HTTP request: ${method} ${BACKEND_API_BASE_URL}${path} ===`);
- if (data) console.log('Request data:', JSON.stringify(data));
- 
- return new Promise((resolve, reject) => {
- const options = {
- hostname: BACKEND_API_HOST,
- port: BACKEND_API_PORT,
- path: path,
- method: method,
- headers: {
- 'Content-Type': 'application/json'
- }
- };
+    console.log(`=== Making HTTP request: ${method} ${BACKEND_API_BASE_URL}${path} ===`);
+    if (data) console.log('Request data:', JSON.stringify(data));
 
- const req = http.request(options, (res) => {
- console.log(`HTTP Response: ${res.statusCode} ${res.statusMessage}`);
- console.log('Response headers:', res.headers);
- 
- let body = '';
- 
- res.on('data', (chunk) => {
- body += chunk;
- });
- 
- res.on('end', () => {
- console.log('Response body:', body);
- try {
- const responseData = JSON.parse(body);
- if (res.statusCode >= 200 && res.statusCode < 300) {
- resolve({ success: true, data: responseData });
- } else {
- resolve({ success: false, error: responseData.description || responseData.error || 'Request failed' });
- }
- } catch (error) {
- resolve({ success: false, error: 'Invalid JSON response' });
- }
- });
- });
+    return new Promise((resolve, reject) => {
+        const options = {
+            hostname: BACKEND_API_HOST,
+            port: BACKEND_API_PORT,
+            path: path,
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
 
- req.on('error', (error) => {
- console.error('HTTP Request error:', error);
- reject(new Error(`Request failed: ${error.message}`));
- });
+        const req = http.request(options, (res) => {
+            console.log(`HTTP Response: ${res.statusCode} ${res.statusMessage}`);
+            console.log('Response headers:', res.headers);
 
- if (data) {
- const jsonData = JSON.stringify(data);
- console.log('Writing request data:', jsonData);
- req.write(jsonData);
- }
- 
- console.log('Ending HTTP request...');
- req.end();
- });
+            let body = '';
+
+            res.on('data', (chunk) => {
+                body += chunk;
+            });
+
+            res.on('end', () => {
+                console.log('Response body:', body);
+                try {
+                    const responseData = JSON.parse(body);
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                        resolve({ success: true, data: responseData });
+                    } else {
+                        resolve({ success: false, error: responseData.description || responseData.error || 'Request failed' });
+                    }
+                } catch (error) {
+                    resolve({ success: false, error: 'Invalid JSON response' });
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            console.error('HTTP Request error:', error);
+            reject(new Error(`Request failed: ${error.message}`));
+        });
+
+        if (data) {
+            const jsonData = JSON.stringify(data);
+            console.log('Writing request data:', jsonData);
+            req.write(jsonData);
+        }
+
+        console.log('Ending HTTP request...');
+        req.end();
+    });
 }
 
 // Call backend /run endpoint
 async function callBackendRun(payload) {
- try {
- return await makeHttpRequest('/run', 'POST', payload);
- } catch (error) {
- return { success: false, error: error.message };
- }
+    try {
+        console.log('Calling backend /run endpoint...');
+        console.log('Request payload:', JSON.stringify(payload));
+        return await makeHttpRequest('/run', 'POST', payload);
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 }
 
 // Poll for job completion
 async function pollJobCompletion(jobId, maxAttempts = 30, interval = 2000) {
- for (let attempt = 0; attempt < maxAttempts; attempt++) {
- try {
- const result = await makeHttpRequest(`/job/${jobId}`, 'GET');
- 
- if (result.success) {
- const status = result.data.status;
- 
- if (status === 'completed' || status === 'failed' || status === 'timeout') {
- return result;
- }
- 
- // Job still running, wait before next poll
- await new Promise(resolve => setTimeout(resolve, interval));
- } else {
- return result;
- }
- } catch (error) {
- return { success: false, error: error.message };
- }
- }
- 
- // Timeout after maxAttempts
- return { success: false, error: 'Job polling timeout' };
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            const result = await makeHttpRequest(`/job/${jobId}`, 'GET');
+
+            if (result.success) {
+                const status = result.data.status;
+
+                if (status === 'completed' || status === 'failed' || status === 'timeout') {
+                    return result;
+                }
+
+                // Job still running, wait before next poll
+                await new Promise(resolve => setTimeout(resolve, interval));
+            } else {
+                return result;
+            }
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Timeout after maxAttempts
+    return { success: false, error: 'Job polling timeout' };
 }
 
 // Start backend server
 async function startBackendServer() {
- try {
- const result = await makeHttpRequest('/start', 'POST');
- return result;
- } catch (error) {
- return { success: false, error: error.message };
- }
+    try {
+        const result = await makeHttpRequest('/start', 'POST');
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 }
 
 // Check backend health
 async function checkBackendHealth() {
- try {
- const result = await makeHttpRequest('/health', 'GET');
- return result;
- } catch (error) {
- return { success: false, error: error.message };
- }
+    try {
+        const result = await makeHttpRequest('/health', 'GET');
+        const result2 = await makeHttpRequest('/start', 'POST');
+        return result2;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 }
 
 // Conversation tracking variables
@@ -684,71 +687,71 @@ function setupGeminiIpcHandlers(geminiSessionRef) {
                 return { success: false, error: 'Invalid text message' };
             }
 
- console.log('Sending text message to backend:', text);
- 
- // Check if backend is running, start it if needed
- let healthCheck = await checkBackendHealth();
- if (!healthCheck.success) {
- console.log('Backend not running, attempting to start...');
- const startResult = await startBackendServer();
- if (!startResult.success) {
- return { success: false, error: 'Failed to start backend server: ' + startResult.error };
- }
- 
- // Wait a moment for server to initialize
- await new Promise(resolve => setTimeout(resolve, 1000));
- 
- // Verify backend is now running
- healthCheck = await checkBackendHealth();
- if (!healthCheck.success) {
- return { success: false, error: 'Backend server failed to start properly' };
- }
- }
- 
- // Call backend /run endpoint
- // Only send session_id if we have a valid one from a previous backend response
- const payload = {
- query: text.trim(),
- files: []
- };
- 
- // Only include session_id if it came from the backend (not frontend-generated)
- if (currentSessionId && typeof currentSessionId === 'string' && currentSessionId.length > 0) {
- payload.session_id = currentSessionId;
- }
- 
- const result = await callBackendRun(payload);
+            console.log('Sending text message to backend:', text);
 
- if (result.success) {
- // Update the current session ID from backend response
- if (result.data.session_id) {
- currentSessionId = result.data.session_id;
- }
- 
- // Poll for job completion and handle response
- const jobResult = await pollJobCompletion(result.data.job_id);
- 
- if (jobResult.success && jobResult.data.status === 'completed') {
- // Send response to renderer
- const response = jobResult.data.result?.summary || 'Task completed successfully';
- sendToRenderer('ai-response', {
- text: response,
- timestamp: Date.now(),
- sessionId: currentSessionId
- });
- 
- return { success: true, response: response };
- } else {
- return { success: false, error: jobResult.error || 'Job execution failed' };
- }
- } else {
- return { success: false, error: result.error };
- }
- } catch (error) {
- console.error('Error sending text message:', error);
- return { success: false, error: error.message };
- }
- });
+            // Check if backend is running, start it if needed
+            let healthCheck = await checkBackendHealth();
+            if (!healthCheck.success) {
+                console.log('Backend not running, attempting to start...');
+                const startResult = await startBackendServer();
+                if (!startResult.success) {
+                    return { success: false, error: 'Failed to start backend server: ' + startResult.error };
+                }
+
+                // Wait a moment for server to initialize
+                await new Promise(resolve => setTimeout(resolve, 5000));
+
+                // Verify backend is now running
+                healthCheck = await checkBackendHealth();
+                if (!healthCheck.success) {
+                    return { success: false, error: 'Backend server failed to start properly' };
+                }
+            }
+
+            // Call backend /run endpoint
+            // Only send session_id if we have a valid one from a previous backend response
+            const payload = {
+                query: text.trim(),
+                files: []
+            };
+
+            // Only include session_id if it came from the backend (not frontend-generated)
+            //  if (currentSessionId && typeof currentSessionId === 'string' && currentSessionId.length > 0) {
+            //  payload.session_id = currentSessionId;
+            //  }
+
+            const result = await callBackendRun(payload);
+
+            if (result.success) {
+                // Update the current session ID from backend response
+                if (result.data.session_id) {
+                    currentSessionId = result.data.session_id;
+                }
+
+                // Poll for job completion and handle response
+                const jobResult = await pollJobCompletion(result.data.job_id);
+
+                if (jobResult.success && jobResult.data.status === 'completed') {
+                    // Send response to renderer
+                    const response = jobResult.data.result?.summary || 'Task completed successfully';
+                    sendToRenderer('ai-response', {
+                        text: response,
+                        timestamp: Date.now(),
+                        sessionId: currentSessionId
+                    });
+
+                    return { success: true, response: response };
+                } else {
+                    return { success: false, error: jobResult.error || 'Job execution failed' };
+                }
+            } else {
+                return { success: false, error: result.error };
+            }
+        } catch (error) {
+            console.error('Error sending text message:', error);
+            return { success: false, error: error.message };
+        }
+    });
 
     ipcMain.handle('start-macos-audio', async event => {
         if (process.platform !== 'darwin') {
