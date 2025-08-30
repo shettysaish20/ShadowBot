@@ -70,7 +70,7 @@ def require_initialization(func):
 	return wrapper
 
 
-DEFAULT_BROWSER_PROFILE = BrowserProfile()
+DEFAULT_BROWSER_PROFILE = BrowserProfile(headless=True)
 
 
 @dataclass

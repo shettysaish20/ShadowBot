@@ -4,10 +4,10 @@ mcp_servers:
   #   cwd: ./mcp_servers
   #   transport: stdio
   #   description: "Most used Math tools, including special string-int conversions, fibonacci, python sandbox, shell and sql related tools"
-  # - id: documents
-  #   script: mcp_server_2.py
-  #   cwd: ./mcp_servers
-  #   description: "Load, search and extract within webpages, local PDFs or other documents. Web and document specialist"
+  - id: documents
+    script: mcp_server_2.py
+    cwd: ./mcp_servers
+    description: "Load, search and extract within webpages, local PDFs or other documents. Web and document specialist"
   - id: websearch
     script: mcp_server_3.py
     cwd: ./mcp_servers

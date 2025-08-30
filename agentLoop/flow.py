@@ -3,6 +3,7 @@
 import networkx as nx
 import asyncio
 from agentLoop.contextManager import ExecutionContextManager
+from typing import Optional, Union, Any, Dict
 from agentLoop.agents import AgentRunner
 from utils.utils import log_step, log_error
 from agentLoop.visualizer import ExecutionVisualizer
@@ -14,12 +15,41 @@ from config.log_config import get_logger, logger_step, logger_json_block, logger
 
 logger = get_logger(__name__)
 
+def _build_output_meta(output):
+    try:
+        if output is None:
+            return None
+        if isinstance(output, (str, int, float)):
+            s = str(output)
+            return {"type": type(output).__name__, "chars": len(s)}
+        if isinstance(output, dict):
+            meta = {"type": "dict", "keys": len(output)}
+            sample_keys = list(output.keys())[:10]
+            meta["sample_keys"] = sample_keys
+            for k in sample_keys:
+                v = output.get(k)
+                if isinstance(v, str) and v.strip():
+                    meta["preview"] = v[:120]
+                    break
+            return meta
+        if isinstance(output, list):
+            return {"type": "list", "len": len(output)}
+        return {"type": type(output).__name__}
+    except Exception:
+        return None
+
 class AgentLoop4:
     def __init__(self, multi_mcp, strategy="conservative"):
         self.multi_mcp = multi_mcp
         self.strategy = strategy
         self.agent_runner = AgentRunner(multi_mcp)
+        self._conversation_turn = 0        
         self.console = Console()
+        # Instrumentation callbacks (optionally set by API layer)
+        # on_step_start(step_id, agent, reads, writes, turn)
+        # on_step_end(step_id, status, duration_ms, error, output_meta, progress)
+        self.on_step_start = None
+        self.on_step_end = None
 
     async def _show_timer_animation(self, duration=30, message="Waiting before calling Gemini"):
             """Show an animated timer for the specified duration"""
@@ -38,21 +68,32 @@ class AgentLoop4:
                     progress.update(task, advance=1)
                     await asyncio.sleep(1)
 
-    async def run(self, query, file_manifest, uploaded_files):
+    async def run(self, query, file_manifest, uploaded_files, context: Optional[ExecutionContextManager] = None):
+        """Run planning + execution. If an existing context is supplied, extend the current session.
+
+        Args:
+            query: User's new query / follow-up
+            file_manifest: Current file manifest
+            uploaded_files: Files just uploaded (optional per turn)
+            context: Existing ExecutionContextManager (continuation) or None (new session)
+        Returns:
+            ExecutionContextManager (existing or newly created) updated with new nodes
+        """
+        self._conversation_turn += 1
+        is_continuation = context is not None
+
+        # Phase 1: (Re)Profile only newly provided files (simple approach)
         # Phase 1: File Profiling (if files exist)
         file_profiles = {}
         if uploaded_files:
-            file_list_text = "\n".join([f"- File {i+1}: {Path(f).name} (full path: {f})" 
-                                       for i, f in enumerate(uploaded_files)])
+            file_list_text = "\n".join([f"- File {i+1}: {Path(f).name} (full path: {f})" for i, f in enumerate(uploaded_files)])
             
             grounded_instruction = f"""Profile and summarize each file's structure, columns, content type.
 
-IMPORTANT: Use these EXACT file names in your response:
-{file_list_text}
+            IMPORTANT: Use these EXACT file names in your response:
+            {file_list_text}
 
-Profile each file separately and return details."""
-            
-            await self._show_timer_animation(30, f"🤖 DistillerAgent Waiting before calling Gemini")
+            Profile each file separately and return details."""
 
             file_result = await self.agent_runner.run_agent(
                 "DistillerAgent",
@@ -68,20 +109,37 @@ Profile each file separately and return details."""
             if file_result["success"]:
                 file_profiles = file_result["output"]
 
-        await self._show_timer_animation(30, f"🤖 PlannerAgent Waiting before calling Gemini")
+        # Phase 2: Planning (initial vs mid_session)
+        planner_input = {
+            "original_query": query,
+            "planning_strategy": self.strategy,
+            "file_manifest": file_manifest,
+            "file_profiles": file_profiles,
+            "mode": "mid_session" if is_continuation else "initial",
+            "conversation_turn": self._conversation_turn
+        }
+        if is_continuation and context is not None:
+            # Provide existing plan graph + used IDs + recent queries for context
+            existing_nodes = [n for n in context.plan_graph.nodes if n != "ROOT"]
+            planner_input["existing_plan_graph"] = {
+                "nodes": [
+                    {
+                        "id": n,
+                        "agent": context.plan_graph.nodes[n].get("agent"),
+                        "description": context.plan_graph.nodes[n].get("description"),
+                        "reads": context.plan_graph.nodes[n].get("reads", []),
+                        "writes": context.plan_graph.nodes[n].get("writes", []),
+                        "status": context.plan_graph.nodes[n].get("status")
+                    } for n in existing_nodes
+                ],
+                "edges": [
+                    {"source": u, "target": v} for u, v in context.plan_graph.edges() if u != "ROOT" or v != "ROOT"
+                ]
+            }
+            planner_input["used_step_ids"] = existing_nodes
+            planner_input["previous_queries"] = context.plan_graph.graph.get("queries", [])
 
-        # Phase 2: Planning
-        plan_result = await self.agent_runner.run_agent(
-            "PlannerAgent",
-            {
-                "original_query": query,
-                "planning_strategy": self.strategy,
-                "file_manifest": file_manifest,
-                "file_profiles": file_profiles
-            },
-            step_id="planning",
-            iteration=1
-        )
+        plan_result = await self.agent_runner.run_agent("PlannerAgent", planner_input)
 
         if not plan_result["success"]:
             raise RuntimeError(f"Planning failed: {plan_result['error']}")
@@ -91,29 +149,96 @@ Profile each file separately and return details."""
         
         plan_graph = plan_result["output"]["plan_graph"]
 
-        # Phase 3: Simple Output Chain Execution
-        context = ExecutionContextManager(
-            plan_graph,
-            session_id=None,
-            original_query=query,
-            file_manifest=file_manifest
-        )
-        
-        context.set_multi_mcp(self.multi_mcp)
-        
-        # Store initial files in output chain
-        if file_profiles:
-            context.plan_graph.graph['output_chain']['file_profiles'] = file_profiles
+        if not is_continuation:
+            # Phase 3: Create new context
+            context = ExecutionContextManager(
+                plan_graph,
+                session_id="",  # auto-generate inside constructor when falsy
+                original_query=query,
+                file_manifest=file_manifest
+            )
+            context.set_multi_mcp(self.multi_mcp)
+            context.plan_graph.graph.setdefault("queries", []).append({
+                "turn": self._conversation_turn,
+                "query": query
+            })
 
-        # Store uploaded files directly
-        for file_info in file_manifest:
-            context.plan_graph.graph['output_chain'][file_info['name']] = file_info['path']
+            # Store initial files in output chain
+            if file_profiles:
+                context.plan_graph.graph['output_chain']['file_profiles'] = file_profiles
+
+            # Store uploaded files directly
+            for file_info in file_manifest:
+                context.plan_graph.graph['output_chain'][file_info['name']] = file_info['path']
+        else:
+            # Phase 3b: Append new plan to existing context
+            self._append_new_plan(context, plan_graph, query)
+            context.plan_graph.graph.setdefault("queries", []).append({
+                "turn": self._conversation_turn,
+                "query": query
+            })
+            # Merge new file profiles (namespace safe)
+            if file_profiles:
+                context.plan_graph.graph['output_chain'][f"file_profiles_turn_{self._conversation_turn}"] = file_profiles
 
         # Phase 4: Execute with simple output chaining
         await self._execute_dag(context)
         return context
 
-    async def _execute_dag(self, context):
+    def _append_new_plan(self, context: ExecutionContextManager, new_plan_graph: dict, query: str):
+        """Append nodes/edges from a new plan_graph into existing session graph.
+        Ensures unique IDs and preserves existing node statuses.
+        """
+        existing_ids = set(context.plan_graph.nodes())
+        # Determine next numeric index for fallback
+        def next_id_generator():
+            # Extract numeric parts like T001
+            max_num = 0
+            for nid in existing_ids:
+                try:
+                    if nid.startswith('T'):
+                        num = int(''.join(ch for ch in nid[1:] if ch.isdigit()))
+                        max_num = max(max_num, num)
+                except Exception:
+                    continue
+            while True:
+                max_num += 1
+                yield f"T{max_num:03d}"
+        id_gen = next_id_generator()
+
+        id_map = {}
+        for node in new_plan_graph.get("nodes", []):
+            nid = node["id"]
+            if nid in existing_ids:
+                new_id = next(id_gen)
+                id_map[nid] = new_id
+                nid = new_id
+            else:
+                id_map[node["id"]] = node["id"]
+            # Remove any attributes we explicitly set to avoid duplicate kwargs
+            sanitized = {k: v for k, v in node.items() if k not in {'id','status','output','error','cost','start_time','end_time','execution_time'}}
+            # Use provided status if present else pending
+            node_status = node.get('status','pending')
+            if node_status != "completed":
+                context.plan_graph.add_node(
+                    nid,
+                    **sanitized,
+                    status=node_status,
+                    output=None, error=None, cost=0.0,
+                    start_time=None, end_time=None, execution_time=0.0
+                )
+        # Add edges
+        for edge in new_plan_graph.get("edges", []):
+            src = id_map.get(edge.get("source"), edge.get("source"))
+            tgt = id_map.get(edge.get("target"), edge.get("target"))
+            # Only add if both in graph
+            if src in context.plan_graph.nodes and tgt in context.plan_graph.nodes:
+                context.plan_graph.add_edge(src, tgt)
+        # Update graph original_query to most recent query for prompt context
+        context.plan_graph.graph['original_query'] = query
+        log_step(f"🔗 Appended {len(new_plan_graph.get('nodes', []))} new nodes (turn {self._conversation_turn})", symbol="➕")
+
+    async def _execute_dag(self, context: ExecutionContextManager):
         """Execute DAG with simple output chaining"""
         visualizer = ExecutionVisualizer(context)
         console = Console()
@@ -125,11 +250,18 @@ Profile each file separately and return details."""
         while not context.all_done() and iteration < max_iterations:
             iteration += 1
             console.print(visualizer.get_layout())
+
+            # Watchdog: auto-fail steps running too long
+            stuck = context.get_running_over(90)
+            if stuck:
+                for s in stuck:
+                    if context.plan_graph.nodes[s]['status'] == 'running':
+                        context.mark_failed(s, error='watchdog_timeout')
             
             ready_steps = context.get_ready_steps()
             if not ready_steps:
                 if any(context.plan_graph.nodes[n]['status'] == 'failed' 
-                       for n in context.plan_graph.nodes):
+                    for n in context.plan_graph.nodes):
                     break
                 await asyncio.sleep(0.3)
                 continue
@@ -143,6 +275,12 @@ Profile each file separately and return details."""
             # Mark running
             for step_id in current_batch:
                 context.mark_running(step_id)
+                if self.on_step_start:
+                    try:
+                        sd = context.get_step_data(step_id)
+                        self.on_step_start(step_id, sd.get('agent'), sd.get('reads', []), sd.get('writes', []), self._conversation_turn)
+                    except Exception:
+                        pass
             
             # Execute batch
             tasks = [self._execute_step(step_id, context) for step_id in current_batch]
@@ -152,15 +290,37 @@ Profile each file separately and return details."""
             for step_id, result in zip(current_batch, results):
                 if isinstance(result, Exception):
                     context.mark_failed(step_id, str(result))
-                elif result["success"]:
-                    await context.mark_done(step_id, result["output"])
+                    continue
+                if not isinstance(result, dict):
+                    context.mark_failed(step_id, f"Unexpected result type: {type(result)}")
+                    continue
+                if result.get("success"):
+                    start_iso = context.plan_graph.nodes[step_id].get('start_time')
+                    await context.mark_done(step_id, result.get("output"))
+                    if self.on_step_end:
+                        try:
+                            node_data = context.plan_graph.nodes[step_id]
+                            dur = node_data.get('execution_time', 0.0) * 1000.0
+                            progress = context.get_execution_summary()
+                            self.on_step_end(step_id, 'completed', dur, None, _build_output_meta(node_data.get('output')), progress)
+                        except Exception:
+                            pass
                 else:
-                    context.mark_failed(step_id, result["error"])
+                    err = result.get("error")
+                    context.mark_failed(step_id, err)
+                    if self.on_step_end:
+                        try:
+                            node_data = context.plan_graph.nodes[step_id]
+                            dur_ms = node_data.get('execution_time', 0.0) * 1000.0
+                            progress = context.get_execution_summary()
+                            self.on_step_end(step_id, 'failed', dur_ms, err, None, progress)
+                        except Exception:
+                            pass
 
             if len(ready_steps) > batch_size:
                 await asyncio.sleep(5)
 
-    async def _execute_step(self, step_id, context):
+    async def _execute_step(self, step_id, context: ExecutionContextManager):
         """SIMPLE: Execute step with direct output passing and code execution"""
         step_data = context.get_step_data(step_id)
         agent_type = step_data["agent"]
@@ -306,21 +466,26 @@ Profile each file separately and return details."""
             
             return second_result if second_result["success"] else result
         
-        if result["success"] and "clarification_request" in result:
-            log_step(f"🤔 {step_id}: Clarification needed", symbol="❓")
+        ## FIXED: Check for the code bug in ClarificationAgent
+        # if result["success"] and "clarification_request" in result["output"]:
+        #     log_step(f"🤔 {step_id}: Clarification needed", symbol="❓")
             
-            # Get user input
-            clarification = result["clarification_request"]
-            user_response = await self._get_user_input(clarification)
+        #     # Get user input
+        #     clarification = result["output"].get("clarification_request",{"message": "Please elaborate on your query!"})
+        #     user_response = await self._get_user_input(clarification["message"])
             
-            # CREATE the actual node output (ClarificationAgent doesn't do this)
-            result["output"] = {
-                "user_choice": user_response,
-                "clarification_provided": clarification["message"]
-            }
-            
-            # Mark as successful
-            result["success"] = True
+        #     # CREATE the actual node output (ClarificationAgent doesn't do this)
+        #     result["output"] = {
+        #         "user_choice": user_response,
+        #         "clarification_provided": clarification["message"]
+        #     }
+        #     # Mark as successful
+        #     result["success"] = True
         
         return result
+    
+    async def _get_user_input(self, message):
+        """Get query from user"""
+        log_step(message, symbol="❓")
+        return input().strip()
 

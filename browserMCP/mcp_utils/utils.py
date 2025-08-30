@@ -24,7 +24,7 @@ async def ensure_browser_session():
     
     if browser_session is None:
         profile = BrowserProfile(
-            headless=False,
+            headless=True,
             allowed_domains=None,
             highlight_elements=True,
             bypass_csp=True,

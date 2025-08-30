@@ -226,8 +226,8 @@ async def execute_python_code_variant(code: str, multi_mcp, session_id: str, inp
             result = {k: v for k, v in local_vars.items() if not k.startswith('__')}
         
         # 🚨 DEBUG: Print code execution result
-        print(f"\n🚨 CODE EXECUTION RESULT:")
-        print(f"Result: {result}")
+        # print(f"\n🚨 CODE EXECUTION RESULT:")
+        # print(f"Result: {result}")
         print(f"Local vars: {[k for k in local_vars.keys() if not k.startswith('__')]}")
         print("=" * 30)
         
@@ -270,7 +270,8 @@ async def execute_code_variants(code_variants: dict, multi_mcp, session_id: str,
         logger_code_block(logger, f"⚡ Executor results for session {session_id} step {step_id}, iteration {iteration} - variant {variant_name}", code, result)
 
         print("HALT HERE")
-        print(result)
+        ## DEBUG
+        # print(result)
         
         if result["status"] == "success":
             # Success!
@@ -418,7 +419,8 @@ async def run_user_code(output_data: dict, multi_mcp, session_id: str = "default
     print(f"\n🚨 EXECUTOR RECEIVED:")
     print(f"Session: {session_id}")
     print(f"Output data keys: {list(output_data.keys()) if output_data else 'NONE'}")
-    print(f"Inputs: {inputs}")
+    ## DEBUG
+    # print(f"Inputs: {inputs}")
     if 'code_variants' in output_data:
         print(f"Code variants: {list(output_data['code_variants'].keys())}")
     print("=" * 50)
@@ -501,8 +503,9 @@ async def run_user_code(output_data: dict, multi_mcp, session_id: str = "default
         print(f"\n🚨 EXECUTOR FINAL RESULT:")
         print(f"Status: {results['status']}")
         print(f"Operations: {results['operations']}")
-        print(f"Code results: {results.get('code_results', {}).get('result', 'NO_CODE_RESULT')}")
-        print(f"Full results: {results}")
+        ## DEBUG
+        # print(f"Code results: {results.get('code_results', {}).get('result', 'NO_CODE_RESULT')}")
+        # print(f"Full results: {results}")
         print("=" * 60)
         
         return results

@@ -1,6 +1,6 @@
 agents:
   PlannerAgent:
-    prompt_file: "prompts/planner_interview_assist_prompt.txt"
+    prompt_file: "prompts/profiles/planner_customer_support.txt"
     model: "gemini"
     mcp_servers: []  # No tools needed
     
@@ -26,7 +26,7 @@ agents:
     mcp_servers: []
 
   FormatterAgent:
-    prompt_file: "prompts/formatter_prompt.txt"
+    prompt_file: "prompts/formatter_overlay_prompt.txt"
     model: "gemini"
     mcp_servers: []
 

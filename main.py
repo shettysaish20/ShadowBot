@@ -8,7 +8,6 @@ from mcp_servers.multiMCP import MultiMCP
 from agentLoop.flow import AgentLoop4
 from agentLoop.output_analyzer import analyze_results
 from pathlib import Path
-from pprint import pprint
 
 BANNER = """
 ──────────────────────────────────────────────────────
@@ -77,8 +76,9 @@ async def main():
     multi_mcp = MultiMCP(server_configs)  # ✅ Pass server_configs
     await multi_mcp.initialize()          # ✅ Use initialize() not start()
     
-    # Initialize AgentLoop4
+    # Initialize AgentLoop4 and persistent context (single session until exit/reset)
     agent_loop = AgentLoop4(multi_mcp)
+    context = None  # Will hold ExecutionContextManager across turns
     
     while True:
         try:
@@ -90,13 +90,19 @@ async def main():
             if query.lower() in ['exit', 'quit']:
                 break
             
-            # Process with AgentLoop4 - returns ExecutionContextManager object
-            log_step("🔄 Processing with AgentLoop4...")
-            execution_context = await agent_loop.run(query, file_manifest, uploaded_files)
-            
-            # Analyze results directly from NetworkX graph
+            # Special commands
+            if query.lower() in ['reset','/reset']:
+                log_step("♻️  Resetting session (new session will start on next query)")
+                context = None
+                continue
+
+            # Process with AgentLoop4 (extend existing session if present)
+            log_step("🔄 Processing with AgentLoop4 (multi-turn session)...")
+            context = await agent_loop.run(query, file_manifest, uploaded_files, context=context)
+
+            # Analyze results directly from NetworkX graph (same session)
             print("\n" + "="*60)
-            analyze_results(execution_context)
+            analyze_results(context)
             print("="*60)
             
             print("\n😴 Agent Resting now")
@@ -109,9 +115,12 @@ async def main():
             print("Let's try again...")
         
         # Continue prompt
-        cont = input("\nContinue? (press Enter) or type 'exit': ").strip()
+        cont = input("\nAsk another question (Enter) or type 'exit' (or 'reset' to start new session): ").strip()
         if cont.lower() in ['exit', 'quit']:
             break
+        if cont.lower() in ['reset','/reset']:
+            log_step("♻️  Resetting session (new session will start on next query)")
+            context = None
 
     await multi_mcp.shutdown()
 

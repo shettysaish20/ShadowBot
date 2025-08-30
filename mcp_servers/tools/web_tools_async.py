@@ -60,7 +60,7 @@ async def web_tool_playwright(url: str, max_total_wait: int = 15) -> dict:
 
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=False)
+            browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
 
             await page.goto(url, wait_until="domcontentloaded", timeout=15000)
