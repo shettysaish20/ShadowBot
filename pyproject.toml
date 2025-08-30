@@ -39,6 +39,9 @@ dependencies = [
     "patchright>=1.52.5",
     "posthog>=5.4.0",
     "flask>=3.1.1",
+    "flask-sock>=0.7.0",
     "matplotlib>=3.10.3",
     "cssutils>=2.11.1",
+    "websocket-client>=1.8.0",
+    "pyflakes>=3.4.0",
 ]

@@ -16,3 +16,7 @@
 - Maintain Session ID continuation
 
 
+## My questions
+- Who is the CEO of Tesla? Do an in-depth research on him (55446097)
+- What is the financial performance of Tesla for last 6 months? What factors have affected the revenue and stock price?
+
