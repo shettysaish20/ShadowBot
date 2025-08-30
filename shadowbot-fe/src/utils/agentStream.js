@@ -109,7 +109,7 @@ export async function configure(opts = {}) {
 
 // -------------------- Job Submission --------------------
 
-export async function runJob(query, files = []) {
+export async function runJob(query, files = [], profile = null) {
     if (!query || !query.trim()) throw new Error('Empty query');
     // Prevent concurrent job for same session
     if (_state.job && _state.job.state === 'running') {
@@ -118,6 +118,7 @@ export async function runJob(query, files = []) {
     // Use existing session or null -> server generates
     const payload = { query, files };
     if (_state.sessionId) payload.session_id = _state.sessionId;
+    if (profile) payload.profile = profile; // new profile parameter
     const url = `${_state.baseUrl}/run`;
     const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!r.ok) throw new Error(`Run failed: ${r.status}`);
@@ -125,7 +126,7 @@ export async function runJob(query, files = []) {
     _state.sessionId = data.session_id;
     _state.jobId = data.job_id;
     // Reset per-job state
-    _state.job = { state: 'queued', job_id: _state.jobId };
+    _state.job = { state: 'queued', job_id: _state.jobId, profile: data.profile };
     _state.steps = {};
     _state.report = null;
     _state.errors = [];

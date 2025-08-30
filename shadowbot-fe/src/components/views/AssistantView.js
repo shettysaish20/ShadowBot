@@ -525,7 +525,7 @@ export class AssistantView extends LitElement {
             const message = textInput.value.trim();
             textInput.value = '';
             try {
-                await agentRunJob(message, []);
+                await agentRunJob(message, [], this.selectedProfile);
             } catch (e) {
                 console.error('runJob error', e);
             }
@@ -585,7 +585,10 @@ export class AssistantView extends LitElement {
     // Full report iframe logic removed
     }
 
+    // Add small header bar to show running job and profile
     render() {
+        const snapshot = agentGetSnapshot();
+        const currentJobProfile = snapshot?.job?.profile || this.selectedProfile;
         const currentResponse = this.getCurrentResponse();
         const responseCounter = this.getResponseCounter();
         const isSaved = this.isResponseSaved();
@@ -604,6 +607,10 @@ export class AssistantView extends LitElement {
                 WS ${status}${reconnectInfo}
             </span>
             ${status === 'error' || status === 'closed' ? html`<button style="background:transparent;border:1px solid ${color};color:${color};border-radius:10px;padding:2px 6px;font-size:10px;cursor:pointer;" @click=${() => window.shadowAgent && window.shadowAgent.forceReconnect()}>Retry</button>` : ''}
+            </div>
+            <div style="padding:4px 8px;font-size:12px;color:var(--description-color);display:flex;gap:12px;align-items:center;">
+                <span>Profile: <strong>${currentJobProfile}</strong></span>
+                ${snapshot.job && snapshot.job.state === 'running' ? html`<span>Running job ...</span>` : ''}
             </div>
             <div class="response-container" id="responseContainer">
                 ${running ? html`<div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">Running job... ${job.completed_steps || 0}/${job.total_steps || 0} (${Math.round((job.progress_ratio || 0) * 100)}%)</div>` : ''}
