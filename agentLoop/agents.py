@@ -163,6 +163,25 @@ class AgentRunner:
                 return {"success": False, "error": f"Unknown agent: {agent_type}"}
             
             agent_config = self.agent_configs[agent_type]
+            # Dynamic PlannerAgent profile-based prompt override
+            if agent_type == 'PlannerAgent':
+                provided_profile = (input_data.get('profile') if isinstance(input_data, dict) else None) or ''
+                norm = provided_profile.strip().lower()
+                profiles_cfg = agent_config.get('profiles', {}) if isinstance(agent_config, dict) else {}
+                default_profile = (agent_config.get('default_profile') or 'customer-support').lower()
+                # Accept only explicit keys
+                if norm not in profiles_cfg:
+                    # warn via log and fall back
+                    if norm:
+                        log_error(f"Unknown planner profile '{provided_profile}', defaulting to '{default_profile}'")
+                    norm = default_profile
+                selected_prompt = profiles_cfg.get(norm)
+                if selected_prompt:
+                    agent_config = {**agent_config, 'prompt_file': selected_prompt, '_active_profile': norm}
+                else:
+                    # Fallback: if legacy prompt_file exists, leave as-is; else error
+                    if 'prompt_file' not in agent_config:
+                        return {"success": False, "error": f"No prompt file resolved for PlannerAgent profile '{norm}'"}
             
             # ✅ UNIFIED FILE DETECTION - Check multiple input sources
             all_files = self._detect_files_in_inputs(input_data)

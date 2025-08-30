@@ -1,8 +1,12 @@
 agents:
   PlannerAgent:
-    prompt_file: "prompts/profiles/planner_customer_support.txt"
     model: "gemini"
     mcp_servers: []  # No tools needed
+    # Dynamic profile-based prompts
+    default_profile: "customer-support"
+    profiles:
+      customer-support: "prompts/profiles/planner_customer_support.txt"
+      interviewer: "prompts/profiles/planner_interview_assist_prompt.txt"
     
   RetrieverAgent:
     prompt_file: "prompts/retriever_prompt.txt" 

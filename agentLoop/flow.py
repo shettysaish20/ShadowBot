@@ -68,7 +68,7 @@ class AgentLoop4:
                     progress.update(task, advance=1)
                     await asyncio.sleep(1)
 
-    async def run(self, query, file_manifest, uploaded_files, context: Optional[ExecutionContextManager] = None):
+    async def run(self, query, file_manifest, profile, uploaded_files, context: Optional[ExecutionContextManager] = None):
         """Run planning + execution. If an existing context is supplied, extend the current session.
 
         Args:
@@ -110,14 +110,22 @@ class AgentLoop4:
                 file_profiles = file_result["output"]
 
         # Phase 2: Planning (initial vs mid_session)
+        # Determine active profile (persist in context.graph)
+        active_profile = profile
+        if is_continuation and context is not None:
+            active_profile = context.plan_graph.graph.get('planner_profile')
+            
+        # planner_input always carries profile (may be None -> runner will default)
         planner_input = {
             "original_query": query,
             "planning_strategy": self.strategy,
             "file_manifest": file_manifest,
             "file_profiles": file_profiles,
             "mode": "mid_session" if is_continuation else "initial",
-            "conversation_turn": self._conversation_turn
+            "conversation_turn": self._conversation_turn,
+            **({"profile": active_profile} if active_profile else {})
         }
+        
         if is_continuation and context is not None:
             # Provide existing plan graph + used IDs + recent queries for context
             existing_nodes = [n for n in context.plan_graph.nodes if n != "ROOT"]
@@ -469,11 +477,11 @@ class AgentLoop4:
         ## FIXED: Check for the code bug in ClarificationAgent
         # if result["success"] and "clarification_request" in result["output"]:
         #     log_step(f"🤔 {step_id}: Clarification needed", symbol="❓")
-            
+        
         #     # Get user input
         #     clarification = result["output"].get("clarification_request",{"message": "Please elaborate on your query!"})
         #     user_response = await self._get_user_input(clarification["message"])
-            
+        
         #     # CREATE the actual node output (ClarificationAgent doesn't do this)
         #     result["output"] = {
         #         "user_choice": user_response,
