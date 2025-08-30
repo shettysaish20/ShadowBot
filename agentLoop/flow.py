@@ -10,6 +10,10 @@ from agentLoop.visualizer import ExecutionVisualizer
 from rich.console import Console
 from pathlib import Path
 from action.executor import run_user_code
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
+from config.log_config import get_logger, logger_step, logger_json_block, logger_prompt, logger_code_block, logger_error
+
+logger = get_logger(__name__)
 
 def _build_output_meta(output):
     try:
@@ -39,12 +43,30 @@ class AgentLoop4:
         self.multi_mcp = multi_mcp
         self.strategy = strategy
         self.agent_runner = AgentRunner(multi_mcp)
-        self._conversation_turn = 0
+        self._conversation_turn = 0        
+        self.console = Console()
         # Instrumentation callbacks (optionally set by API layer)
         # on_step_start(step_id, agent, reads, writes, turn)
         # on_step_end(step_id, status, duration_ms, error, output_meta, progress)
         self.on_step_start = None
         self.on_step_end = None
+
+    async def _show_timer_animation(self, duration=30, message="Waiting before calling Gemini"):
+            """Show an animated timer for the specified duration"""
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                TimeElapsedColumn(),
+                console=self.console,
+                transient=True
+            ) as progress:
+                task = progress.add_task(f"[cyan]{message}...", total=duration)
+                
+                for i in range(duration):
+                    progress.update(task, advance=1)
+                    await asyncio.sleep(1)
 
     async def run(self, query, file_manifest, uploaded_files, context: Optional[ExecutionContextManager] = None):
         """Run planning + execution. If an existing context is supplied, extend the current session.
@@ -80,7 +102,9 @@ class AgentLoop4:
                     "files": uploaded_files,
                     "instruction": grounded_instruction,
                     "writes": ["file_profiles"]
-                }
+                }, 
+                step_id="file_profiling",
+                iteration=1
             )
             if file_result["success"]:
                 file_profiles = file_result["output"]
@@ -219,7 +243,7 @@ class AgentLoop4:
         visualizer = ExecutionVisualizer(context)
         console = Console()
         
-        MAX_CONCURRENT_AGENTS = 4
+        MAX_CONCURRENT_AGENTS = 1
         max_iterations = 20
         iteration = 0
 
@@ -237,7 +261,7 @@ class AgentLoop4:
             ready_steps = context.get_ready_steps()
             if not ready_steps:
                 if any(context.plan_graph.nodes[n]['status'] == 'failed' 
-                       for n in context.plan_graph.nodes):
+                    for n in context.plan_graph.nodes):
                     break
                 await asyncio.sleep(0.3)
                 continue
@@ -322,17 +346,21 @@ class AgentLoop4:
 
         # Execute first iteration
         agent_input = build_agent_input()
-        result = await self.agent_runner.run_agent(agent_type, agent_input)
+        await self._show_timer_animation(30, f"🤖 {agent_type} Waiting before calling Gemini")
+        result = await self.agent_runner.run_agent(agent_type, agent_input, step_id=step_id, iteration=1)
         
         # NEW: Handle code execution if agent returned code variants
         if result["success"] and "code" in result["output"]:
             log_step(f"🔧 {step_id}: Agent returned code variants, executing...", symbol="⚙️")
+            logger_step(logger, f"🔄 Executing Step [{step_id}] - Agent returned executable code or files, executing...")
             
             # Prepare executor input
             executor_input = {
                 "code_variants": result["output"]["code"],  # CODE_1, CODE_2, etc.
             }
-            
+
+            logger_json_block(logger, executor_input, "Executor Input for Code Execution")
+
             # Execute code variants sequentially until one succeeds
             try:
                 execution_result = await run_user_code(
@@ -393,8 +421,10 @@ class AgentLoop4:
                 instruction=result["output"].get("next_instruction", "Continue"),
                 previous_output=result["output"]
             )
+
+            await self._show_timer_animation(30, f"🤖 {agent_type} Waiting before calling Gemini")
             
-            second_result = await self.agent_runner.run_agent(agent_type, second_input)
+            second_result = await self.agent_runner.run_agent(agent_type, second_input, step_id=step_id, iteration=2)
             
             # Handle code execution for second iteration too
             if second_result["success"] and "code" in second_result["output"]:

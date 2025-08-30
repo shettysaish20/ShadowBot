@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📊 Comprehensive Technical Report</title>
+  <style>
+    /* Base styles */
+    :root {
+      --bg-light: #ffffff;
+      --bg-dark: #0a0a0a;
+      --text-light: #111111;
+      --text-dark: #f1f1f1;
+      --border-light: #000000;
+      --border-dark: #ffffff;
+      --font-sans: 'Inter', 'San Francisco', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-serif: 'EB Garamond', 'New York', 'Georgia', serif;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans);
+      font-size: 18px;
+      background-color: var(--bg-light);
+      color: var(--text-light);
+      line-height: 1.75;
+      transition: background 0.3s, color 0.3s, font-family 0.3s;
+    }
+    
+    html.dark, body.dark {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 60px auto;
+      padding: 0 20px;
+      background-color: var(--bg-light);
+      transition: background-color 0.3s;
+    }
+    html.dark .container, body.dark .container {
+      background-color: var(--bg-dark);
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-weight: 600;
+      margin-top: 2.5em;
+      margin-bottom: 0.8em;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      border-bottom: 0.5px solid var(--border-light);
+      padding-bottom: 0.2em;
+    }
+    html.dark h1, body.dark h1 {
+      border-color: var(--border-dark);
+    }
+
+    h2 {
+      font-size: 1.5rem;
+    }
+
+    ul, ol {
+      padding-left: 1.5rem;
+      margin: 1rem 0;
+    }
+
+    p {
+      margin-bottom: 1rem;
+    }
+
+    .controls {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      display: flex;
+      gap: 14px;
+      font-size: 0.9rem;
+      z-index: 999;
+    }
+
+    .controls button {
+      all: unset;
+      cursor: pointer;
+      padding: 2px 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      font-weight: 500;
+      color: inherit;
+      opacity: 0.6;
+      transition: opacity 0.3s, background-color 0.3s;
+    }
+    .controls button:hover {
+      opacity: 1;
+    }
+    html.dark .controls button, body.dark .controls button {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .footer {
+      font-size: 0.55rem;
+      text-align: center;
+      margin-top: 2rem;
+      color: #aaa;
+    }
+
+    @media print {
+      .controls { display: none; }
+    }
+
+    
+        /* Image Carousel Styles */
+        .image-carousel {
+            margin: 2rem 0;
+        }
+        
+        .carousel-container {
+            position: relative;
+            max-width: 100%;
+            margin: auto;
+        }
+        
+        .carousel-slides {
+            display: flex;
+            overflow: hidden;
+            width: 100%;
+        }
+        
+        .carousel-slide {
+            min-width: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .carousel-slide.active {
+            display: flex;
+        }
+        
+        .carousel-slide img {
+            width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+        
+        .carousel-caption {
+            text-align: center;
+            margin-top: 1rem;
+            max-width: 600px;
+        }
+        
+        .carousel-caption p {
+            margin: 0.5rem 0;
+            font-weight: 500;
+        }
+        
+        .carousel-caption small {
+            color: #666;
+            font-size: 0.8rem;
+        }
+        html.dark .carousel-caption small, body.dark .carousel-caption small {
+            color: #aaa;
+        }
+        
+        .carousel-btn {
+            position: absolute;
+            top: 45%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: none;
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            font-size: 0.5rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            z-index: 10;
+            opacity: 0.7;
+        }
+        
+        .carousel-btn:hover {
+            background: rgba(0,0,0,0.9);
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .carousel-btn.prev {
+            left: 0;
+        }
+        
+        .carousel-btn.next {
+            right: 0;
+        }
+        
+        .carousel-dots {
+            text-align: center;
+            padding: 1rem 0;
+        }
+        
+        .carousel-dot {
+            height: 8px;
+            width: 8px;
+            margin: 0 4px;
+            background-color: #ccc;
+            border-radius: 50%;
+            display: inline-block;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .carousel-dot.active, .carousel-dot:hover {
+            background-color: #333;
+            transform: scale(1.2);
+        }
+        html.dark .carousel-dot {
+            background-color: #666;
+        }
+        html.dark .carousel-dot.active, body.dark .carousel-dot.active,
+        html.dark .carousel-dot:hover, body.dark .carousel-dot:hover {
+            background-color: #ccc;
+        }
+        
+        /* Content Images Styling */
+        .container img:not(.carousel-slide img) {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 1.5rem auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        html.dark .container img:not(.carousel-slide img), 
+        body.dark .container img:not(.carousel-slide img) {
+            box-shadow: 0 2px 8px rgba(255,255,255,0.1);
+        }
+        
+        /* Remove any remaining inline width/height styles */
+        .container img[style*="width"] {
+            width: auto !important;
+            max-width: 100% !important;
+        }
+        .container img[style*="height"] {
+            height: auto !important;
+        }
+        
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button onclick="toggleDark()">Th</button>
+    <button onclick="toggleFont()">Aa</button>
+    <button onclick="toggleEmojis()">Em</button>
+  </div>
+  <div class="container" id="main-container">
+    <h1 id='report-title'>📊 Comprehensive Technical Report</h1>
+        <div class="image-carousel">
+            <div class="carousel-container">
+                <div class="carousel-slides">
+        
+                    <div class="carousel-slide active">
+                        <img src="https://i.sstatic.net/qaIWj.png" alt="example DAG" />
+                        <div class="carousel-caption">
+                            <p><strong>example DAG</strong></p>
+                            <small><a href="//i.sstatic.net" target="_blank" rel="noopener noreferrer">Source: i.sstatic.net</a> | Confidence: 0.70</small>
+                        </div>
+                    </div>
+            
+                    <div class="carousel-slide ">
+                        <img src="https://www.programiz.com/sites/tutorial2program/files/right-join-in-sql.png" alt="How to use RIGHT JOIN in SQL" />
+                        <div class="carousel-caption">
+                            <p><strong>How to use RIGHT JOIN in SQL</strong></p>
+                            <small><a href="//www.programiz.com" target="_blank" rel="noopener noreferrer">Source: programiz.com</a> | Confidence: 0.90</small>
+                        </div>
+                    </div>
+            
+                </div>
+                
+                <button class="carousel-btn prev" onclick="changeSlide(-1)">&lt;</button>
+                <button class="carousel-btn next" onclick="changeSlide(1)">&gt;</button>
+            
+            </div>
+        <div class="carousel-dots"><button class="carousel-dot active" onclick="currentSlide(1)"></button><button class="carousel-dot " onclick="currentSlide(2)"></button></div>
+        </div>
+        <div id='introduction'><h2>🎯 Introduction</h2><p>This report provides in-depth explanations and practical code examples for three essential technical topics: Directed Acyclic Graphs (DAGs) in Python, SQL RIGHT JOIN operations for data retrieval, and Bash scripts for automated disk space monitoring. Each section delivers a detailed exploration of the core concepts, supported by hands-on code examples to illustrate effective implementation. This document is designed to provide actionable insights for developers, data engineers, and system administrators seeking to enhance their capabilities in these areas.</p></div><div id='dags'><h2 id='dags-title'>🔗 Directed Acyclic Graphs (DAGs) in Python</h2><p>A Directed Acyclic Graph (DAG) is a graph consisting of vertices and directed edges, with no cycles. DAGs are widely used to model dependencies and workflows, making them essential in various domains, including data science, data engineering, and task scheduling. Popular projects like Apache Airflow and Apache Spark heavily rely on DAGs to manage complex data pipelines and task orchestrations. <i>DAGs provide a structured and intuitive way to represent relationships and dependencies between tasks or processes.</i></p><img src='https://i.sstatic.net/qaIWj.png' alt='example DAG'><p>The fundamental concept behind a DAG is that tasks or nodes are connected by directed edges, indicating the order in which they must be executed. For instance, if task B depends on task A, task A must complete successfully before task B can start. The 'acyclic' property ensures that there are no circular dependencies, preventing infinite loops and guaranteeing a clear and deterministic execution path. DAGs are particularly useful in scenarios where the order of operations is critical for achieving the desired outcome. <a href='https://www.mungingdata.com/python/dag-directed-acyclic-graph-networkx/' target='_blank' rel='noopener noreferrer'>[1]</a></p><p><b>Applications of DAGs:</b></p><ul><li><b>Data Pipelines:</b> DAGs are used to define and manage complex data transformation pipelines, ensuring data flows correctly from source to destination.</li><li><b>Task Scheduling:</b> DAGs help schedule tasks in a way that respects dependencies, optimizing resource utilization and minimizing execution time.</li><li><b>Dependency Resolution:</b> DAGs are used to resolve dependencies in software projects, ensuring that libraries and modules are loaded in the correct order.</li><li><b>Causal Inference:</b> DAGs are applied in causal inference to model cause-and-effect relationships between variables.</li></ul><h3>Python Code Example:</h3><p>This example demonstrates how to create and manipulate a DAG using the <code>graphlib</code> module in Python. The code includes functionalities for adding nodes, edges, and performing a topological sort. The <code>graphlib</code> module is part of the Python standard library, making it a convenient choice for working with DAGs. </p><pre><code>import graphlib
+
+class DAG:
+    def __init__(self):
+        self.graph = {}
+
+    def add_node(self, node):
+        if node not in self.graph:
+            self.graph[node] = set()
+
+    def add_edge(self, from_node, to_node):
+        if from_node not in self.graph:
+            self.add_node(from_node)
+        if to_node not in self.graph:
+            self.add_node(to_node)
+        self.graph[to_node].add(from_node)
+
+    def topological_sort(self):
+        try:
+            ts = graphlib.TopologicalSorter(self.graph)
+            return list(ts.static_order())
+        except graphlib.CycleError as e:
+            raise ValueError("Cycle detected in the DAG: Topological sort not possible.") from e
+
+dag = DAG()
+dag.add_node("A")
+dag.add_node("B")
+dag.add_node("C")
+dag.add_node("D")
+dag.add_node("E")
+
+dag.add_edge("A", "B")
+dag.add_edge("A", "C")
+dag.add_edge("B", "D")
+dag.add_edge("C",
+    <div class="footer">
+      <p>Generated by Seraphine on 2025-08-08 00:30:43 · Session ID: 54592742</p>
+    </div>
+  </div>
+  <script>
+    let emojisHidden = true; /* Start with emojis hidden */
+    let originalContent = '';
+
+    function toggleDark() {
+      /* Toggle dark class on BOTH html and body elements */
+      document.documentElement.classList.toggle('dark');
+      document.body.classList.toggle('dark');
+    }
+
+    function toggleFont() {
+      const current = getComputedStyle(document.body).fontFamily;
+      const isSerif = current.includes("Georgia");
+      document.body.style.fontFamily = isSerif ? 'var(--font-sans)' : 'var(--font-serif)';
+    }
+
+    function toggleEmojis() {
+      const container = document.getElementById('main-container');
+      
+      if (emojisHidden) {
+        /* Restore original content (show emojis) */
+        if (originalContent) {
+          container.innerHTML = originalContent;
+        }
+        emojisHidden = false;
+      } else {
+        /* Store original content and remove emojis */
+        if (!originalContent) {
+          originalContent = container.innerHTML;
+        }
+        /* ✅ FIXED: Comprehensive emoji regex that includes ALL emoji ranges */
+        const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{2100}-\u{214F}]|[\u{1F000}-\u{1F02F}]|[\u{1F0A0}-\u{1F0FF}]|[\u{1F100}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F910}-\u{1F96B}]|[\u{1F980}-\u{1F9E0}]/gu;
+        container.innerHTML = container.innerHTML.replace(emojiRegex, '');
+        emojisHidden = true;
+      }
+    }
+
+    /* Initialize with emojis hidden on page load */
+    window.addEventListener('load', function() {
+      const container = document.getElementById('main-container');
+      /* Store original content first */
+      originalContent = container.innerHTML;
+      /* Then remove emojis by default */
+      /* ✅ FIXED: Same comprehensive emoji regex */
+      const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{2100}-\u{214F}]|[\u{1F000}-\u{1F02F}]|[\u{1F0A0}-\u{1F0FF}]|[\u{1F100}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F910}-\u{1F96B}]|[\u{1F980}-\u{1F9E0}]/gu;
+      container.innerHTML = container.innerHTML.replace(emojiRegex, '');
+    });
+
+    
+        // Image Carousel JavaScript
+        let currentSlideIndex = 0;
+        let slides = [];
+        let dots = [];
+        
+        function initializeCarousel() {
+            slides = document.querySelectorAll('.carousel-slide');
+            dots = document.querySelectorAll('.carousel-dot');
+            currentSlideIndex = 0;
+            
+            if (slides.length > 0) {
+                showSlide(0);
+            }
+        }
+        
+        function showSlide(index) {
+            // Hide all slides
+            slides.forEach(slide => slide.classList.remove('active'));
+            dots.forEach(dot => dot.classList.remove('active'));
+            
+            // Show selected slide
+            if (slides[index]) {
+                slides[index].classList.add('active');
+                if (dots[index]) {
+                    dots[index].classList.add('active');
+                }
+            }
+        }
+        
+        function changeSlide(direction) {
+            if (slides.length === 0) return;
+            
+            currentSlideIndex += direction;
+            if (currentSlideIndex >= slides.length) currentSlideIndex = 0;
+            if (currentSlideIndex < 0) currentSlideIndex = slides.length - 1;
+            showSlide(currentSlideIndex);
+        }
+        
+        function currentSlide(index) {
+            if (slides.length === 0) return;
+            
+            currentSlideIndex = index - 1;
+            showSlide(currentSlideIndex);
+        }
+        
+        // Initialize carousel when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCarousel();
+        });
+        
+        // Re-initialize if content changes (for emoji toggle)
+        window.addEventListener('load', function() {
+            setTimeout(initializeCarousel, 100);
+        });
+        
+  </script>
+</body>
+</html>

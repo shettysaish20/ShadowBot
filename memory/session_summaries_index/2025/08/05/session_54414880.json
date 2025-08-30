@@ -1,0 +1,102 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {
+    "session_id": "54414880",
+    "original_query": "Tell me about linked lists",
+    "file_manifest": [],
+    "created_at": "2025-08-05T17:28:00.423498",
+    "status": "running",
+    "output_chain": {},
+    "validation_results": {
+      "is_valid": true,
+      "is_dag": true,
+      "cycles": [],
+      "disconnected_components": [],
+      "orphaned_nodes": [],
+      "root_nodes": [],
+      "leaf_nodes": [
+        "T003"
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  },
+  "nodes": [
+    {
+      "description": "Initial Query",
+      "agent": "System",
+      "status": "completed",
+      "id": "ROOT"
+    },
+    {
+      "id": "T001",
+      "description": "Retrieve comprehensive information about linked lists from the internet.",
+      "agent": "RetrieverAgent",
+      "agent_prompt": "Gather detailed information about linked lists, including their definition, types, advantages, disadvantages, common operations (insertion, deletion, traversal), and applications. Include code examples in Python, Java, and C++ where applicable.",
+      "reads": [],
+      "writes": [
+        "T001"
+      ],
+      "status": "running",
+      "output": null,
+      "error": null,
+      "cost": 0.0,
+      "start_time": "2025-08-05T17:28:00.440914",
+      "end_time": null,
+      "execution_time": 0.0
+    },
+    {
+      "id": "T002",
+      "description": "Synthesize the information retrieved about linked lists, highlighting key aspects and comparing different implementations.",
+      "agent": "ThinkerAgent",
+      "agent_prompt": "Synthesize the information about linked lists from the provided source. Focus on creating a cohesive and well-structured summary that covers the definition, types, advantages, disadvantages, common operations, and applications of linked lists. Compare and contrast different implementations in Python, Java, and C++. Identify the strengths and weaknesses of each implementation. Explain the time and space complexity of each operation.",
+      "reads": [
+        "T001"
+      ],
+      "writes": [
+        "T002"
+      ],
+      "status": "pending",
+      "output": null,
+      "error": null,
+      "cost": 0.0,
+      "start_time": null,
+      "end_time": null,
+      "execution_time": 0.0
+    },
+    {
+      "id": "T003",
+      "description": "Format the synthesized information into a well-structured and human-readable report.",
+      "agent": "FormatterAgent",
+      "agent_prompt": "Format the synthesized information about linked lists into a comprehensive and easy-to-understand report. Use headings, subheadings, bullet points, tables, and code examples to present the information clearly. Include an introduction, a detailed explanation of linked lists, examples of code, and a conclusion.",
+      "reads": [
+        "T002"
+      ],
+      "writes": [
+        "T003"
+      ],
+      "status": "pending",
+      "output": null,
+      "error": null,
+      "cost": 0.0,
+      "start_time": null,
+      "end_time": null,
+      "execution_time": 0.0
+    }
+  ],
+  "links": [
+    {
+      "source": "ROOT",
+      "target": "T001"
+    },
+    {
+      "source": "T001",
+      "target": "T002"
+    },
+    {
+      "source": "T002",
+      "target": "T003"
+    }
+  ]
+}

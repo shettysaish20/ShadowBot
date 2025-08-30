@@ -1,0 +1,56 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {
+    "session_id": "54586396",
+    "original_query": "Write a sample code for DAG (Directed Acyclic Graph)",
+    "file_manifest": [],
+    "created_at": "2025-08-07T17:06:36.378190",
+    "status": "running",
+    "output_chain": {},
+    "validation_results": {
+      "is_valid": true,
+      "is_dag": true,
+      "cycles": [],
+      "disconnected_components": [],
+      "orphaned_nodes": [],
+      "root_nodes": [],
+      "leaf_nodes": [
+        "T001"
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  },
+  "nodes": [
+    {
+      "description": "Initial Query",
+      "agent": "System",
+      "status": "completed",
+      "id": "ROOT"
+    },
+    {
+      "id": "T001",
+      "description": "Generate sample code for a Directed Acyclic Graph (DAG) including comments and example usage.",
+      "agent": "CoderAgent",
+      "agent_prompt": "Write comprehensive and well-documented sample code for a Directed Acyclic Graph (DAG). The code should include:\n\n1.  A class or data structure to represent the DAG.\n2.  Methods to add nodes and edges to the DAG.\n3.  A method to detect cycles in the DAG.\n4.  A method for topological sorting of the DAG.\n5.  Example usage demonstrating how to create a DAG, add nodes and edges, check for cycles, and perform topological sorting. Include comments to clarify each step. Use Python.",
+      "reads": [],
+      "writes": [
+        "T001"
+      ],
+      "status": "failed",
+      "output": null,
+      "error": "Code execution failed: Code execution failed: All code variants failed. Errors: CODE_1: NameError: __build_class__ not found",
+      "cost": 0.0,
+      "start_time": "2025-08-07T17:06:36.399117",
+      "end_time": "2025-08-07T17:07:15.413955",
+      "execution_time": 39.014838
+    }
+  ],
+  "links": [
+    {
+      "source": "ROOT",
+      "target": "T001"
+    }
+  ]
+}

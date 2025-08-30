@@ -11,6 +11,9 @@ from bs4 import BeautifulSoup
 import ast
 import re
 import cssutils
+from config.log_config import get_logger, logger_step, logger_json_block, logger_prompt, logger_code_block, logger_error
+
+logger = get_logger(__name__)
 
 # Simple imports for Python execution
 SAFE_BUILTINS = {
@@ -245,7 +248,7 @@ async def execute_python_code_variant(code: str, multi_mcp, session_id: str, inp
             "error": f"{type(e).__name__}: {str(e)}"
         }
 
-async def execute_code_variants(code_variants: dict, multi_mcp, session_id: str, inputs: dict = None) -> dict:
+async def execute_code_variants(code_variants: dict, multi_mcp, session_id: str, inputs: dict = None, step_id:str = None, iteration:str = None) -> dict:
     """
     Execute multiple code variants sequentially until one succeeds
     """
@@ -262,6 +265,9 @@ async def execute_code_variants(code_variants: dict, multi_mcp, session_id: str,
         log_step(f"⚡ Trying {variant_name}", symbol="🔬")
         
         result = await execute_python_code_variant(code, multi_mcp, session_id, inputs)
+
+
+        logger_code_block(logger, f"⚡ Executor results for session {session_id} step {step_id}, iteration {iteration} - variant {variant_name}", code, result)
 
         print("HALT HERE")
         ## DEBUG
