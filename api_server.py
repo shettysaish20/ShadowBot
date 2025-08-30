@@ -673,8 +673,8 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
         job.pop('future', None)
 
 # Wrapper adding timeout
-async def _job_with_timeout(job_id: str, session_id: str, query: str, profile: str, files: List[str]):
-    await asyncio.wait_for(_run_agent_job(job_id, session_id, query, profile, files), timeout=JOB_TIMEOUT_SECONDS)
+async def _job_with_timeout(job_id: str, session_id: str, query: str, files: List[str]):
+    await asyncio.wait_for(_run_agent_job(job_id, session_id, query, files), timeout=JOB_TIMEOUT_SECONDS)
 
 # ----------------------- Endpoint Helpers ---------------------------
 
@@ -775,7 +775,7 @@ def run_job():
                         sess_ctx.plan_graph.graph['planner_profile'] = profile
                 except Exception:
                     pass
-        await _job_with_timeout(job_id, session_id, query, profile, files)
+        await _job_with_timeout(job_id, session_id, query, files)
 
     assert STATE.loop is not None, "Async loop not started"
     fut = asyncio.run_coroutine_threadsafe(schedule(), STATE.loop)
