@@ -690,13 +690,13 @@ def _validate_run_payload(data: Dict[str, Any]) -> Dict[str, Any]:
         abort(400, description=f"Missing files: {missing}")
     # Profile selection (case-insensitive)
     raw_profile = (data.get('profile') or '').strip().lower()
-    allowed_profiles = {'customer-support', 'interviewer'}
+    allowed_profiles = {'sales', 'interview'}
     warning = None
     if not raw_profile:
-        raw_profile = 'customer-support'
+        raw_profile = 'sales'
     elif raw_profile not in allowed_profiles:
-        warning = f"Unknown profile '{raw_profile}', defaulted to 'customer-support'"
-        raw_profile = 'customer-support'
+        warning = f"Unknown profile '{raw_profile}', defaulted to 'sales'"
+        raw_profile = 'sales'
     session_id = data.get('session_id')
     if session_id is not None and session_id != '' and session_id not in STATE.sessions:
         # Treat as invalid given requirement 3

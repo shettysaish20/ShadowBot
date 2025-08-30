@@ -168,7 +168,7 @@ class AgentRunner:
                 provided_profile = (input_data.get('profile') if isinstance(input_data, dict) else None) or ''
                 norm = provided_profile.strip().lower()
                 profiles_cfg = agent_config.get('profiles', {}) if isinstance(agent_config, dict) else {}
-                default_profile = (agent_config.get('default_profile') or 'customer-support').lower()
+                default_profile = (agent_config.get('default_profile') or 'sales').lower()
                 # Accept only explicit keys
                 if norm not in profiles_cfg:
                     # warn via log and fall back
@@ -177,6 +177,7 @@ class AgentRunner:
                     norm = default_profile
                 selected_prompt = profiles_cfg.get(norm)
                 if selected_prompt:
+                    log_step(f"Using PlannerAgent profile: {norm}")
                     agent_config = {**agent_config, 'prompt_file': selected_prompt, '_active_profile': norm}
                 else:
                     # Fallback: if legacy prompt_file exists, leave as-is; else error

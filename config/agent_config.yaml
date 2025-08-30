@@ -3,10 +3,10 @@ agents:
     model: "gemini"
     mcp_servers: []  # No tools needed
     # Dynamic profile-based prompts
-    default_profile: "customer-support"
+    default_profile: "sales"
     profiles:
-      customer-support: "prompts/profiles/planner_customer_support.txt"
-      interviewer: "prompts/profiles/planner_interview_assist_prompt.txt"
+      sales: "prompts/profiles/planner_customer_support.txt"
+      interview: "prompts/profiles/planner_interview_assist_prompt.txt"
     
   RetrieverAgent:
     prompt_file: "prompts/retriever_prompt.txt" 
