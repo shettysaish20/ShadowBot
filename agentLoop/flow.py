@@ -346,7 +346,7 @@ class AgentLoop4:
 
         # Execute first iteration
         agent_input = build_agent_input()
-        await self._show_timer_animation(30, f"🤖 {agent_type} Waiting before calling Gemini")
+        # await self._show_timer_animation(30, f"🤖 {agent_type} Waiting before calling Gemini")
         result = await self.agent_runner.run_agent(agent_type, agent_input, step_id=step_id, iteration=1)
         
         # NEW: Handle code execution if agent returned code variants
@@ -422,7 +422,7 @@ class AgentLoop4:
                 previous_output=result["output"]
             )
 
-            await self._show_timer_animation(30, f"🤖 {agent_type} Waiting before calling Gemini")
+            # await self._show_timer_animation(30, f"🤖 {agent_type} Waiting before calling Gemini")
             
             second_result = await self.agent_runner.run_agent(agent_type, second_input, step_id=step_id, iteration=2)
             

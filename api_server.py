@@ -46,6 +46,43 @@ CHANNEL_SWEEP_INTERVAL = 300  # 5 minutes
 app = Flask(__name__)
 sock = Sock(app)
 
+# ----------------------- HTTP Request Logging -----------------------
+# Lightweight access log printing method, path, status, and duration.
+try:
+    from flask import g
+except Exception:  # pragma: no cover
+    g = None  # type: ignore
+
+@app.before_request
+def _log_request_start():  # pragma: no cover - trivial
+    if g is not None:
+        try:
+            g._req_start_ts = time.time()
+        except Exception:
+            pass
+
+@app.after_request
+def _log_request_end(response):  # pragma: no cover - trivial
+    try:
+        start = getattr(g, '_req_start_ts', None) if g is not None else None
+        dur_ms = (time.time() - start) * 1000 if start else None
+        # Avoid extremely chatty logging for heartbeats if desired (keep for now)
+        print(f"[HTTP] {request.method} {request.path} -> {response.status_code}{' %.1fms' % dur_ms if dur_ms is not None else ''}")
+    except Exception as e:
+        try:
+            log_error(f"access log error: {e}")
+        except Exception:
+            pass
+    return response
+
+@app.teardown_request
+def _log_request_teardown(exc):  # pragma: no cover - trivial
+    if exc is not None:
+        try:
+            print(f"[HTTP][ERROR] {request.method} {request.path} raised {exc.__class__.__name__}: {exc}")
+        except Exception:
+            pass
+
 class SystemState:
     def __init__(self):
         # Core runtime state
