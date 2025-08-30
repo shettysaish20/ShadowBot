@@ -416,17 +416,13 @@ export class HelpView extends LitElement {
                         <span>Supported Profiles</span>
                     </div>
                     <div class="profiles-grid">
-                        <div class="profile-item">
+                        <div class="profile-item" @click=${() => this.dispatchEvent(new CustomEvent('profile-selected', {detail: { profile: 'interview' }}))} style="cursor:pointer;">
                             <div class="profile-name">Job Interview</div>
                             <div class="profile-description">Get help with interview questions and responses</div>
                         </div>
-                        <div class="profile-item">
+                        <div class="profile-item" @click=${() => this.dispatchEvent(new CustomEvent('profile-selected', {detail: { profile: 'sales' }}))} style="cursor:pointer;">
                             <div class="profile-name">Customer Support Call</div>
                             <div class="profile-description">Assistance with customer support conversations</div>
-                        </div>
-                        <div class="profile-item">
-                            <div class="profile-name">AI Notetaker</div>
-                            <div class="profile-description">Support for professional meetings and discussions</div>
                         </div>
                     </div>
                 </div>
@@ -441,5 +437,10 @@ export class HelpView extends LitElement {
         `;
     }
 }
+
+// <div class="profile-item">
+//  <div class="profile-name">AI Notetaker</div>
+//   <div class="profile-description">Support for professional meetings and discussions</div>
+//  </div>
 
 customElements.define('help-view', HelpView);
