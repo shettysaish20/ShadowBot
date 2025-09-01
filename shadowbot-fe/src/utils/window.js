@@ -353,6 +353,40 @@ function setupWindowIpcHandlers(mainWindow, sendToRenderer, geminiSessionRef) {
         }
     });
 
+    // 🔽 Add screenshot saver
+    const tmp = require('os').tmpdir();
+    ipcMain.handle('save-screenshot', async (event, buffer) => {
+        try {
+            const filename = `screenshot_${Date.now()}.jpg`;
+            const projectTmpDir = path.join(__dirname, 'tmp');
+            
+            // Ensure temp directory exists inside project
+            if (!fs.existsSync(projectTmpDir)) {
+                fs.mkdirSync(projectTmpDir, { recursive: true });
+            }
+
+            // Cleanup old files (> 30 mins)
+            const thirtyMinsAgo = Date.now() - (30 * 60 * 1000);
+            fs.readdirSync(projectTmpDir).forEach(file => {
+                const filePath = path.join(projectTmpDir, file);
+                const stats = fs.statSync(filePath);
+                if (stats.mtimeMs < thirtyMinsAgo) {
+                    fs.unlinkSync(filePath);
+                    console.log('🗑️ Deleted old screenshot:', file);
+                }
+            });
+
+            const filePath = path.join(projectTmpDir, filename);
+            fs.writeFileSync(filePath, buffer);
+            console.log('📸 Screenshot saved at:', filePath);
+            return { success: true, path: filePath };
+            
+        } catch (err) {
+            console.error('❌ Failed to save screenshot:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
     function animateWindowResize(mainWindow, targetWidth, targetHeight, layoutMode) {
         return new Promise(resolve => {
             // Check if window is destroyed before starting animation

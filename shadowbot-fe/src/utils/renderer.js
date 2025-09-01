@@ -485,7 +485,16 @@ async function captureScreenshot(imageQuality = 'medium', isManual = false) {
                     console.error('Invalid base64 data generated');
                     return;
                 }
-
+                
+                // Save screenshot locally
+                const buffer = Buffer.from(base64data, 'base64');
+                if (isManual) {
+                    const saveResult = await ipcRenderer.invoke('save-screenshot', buffer);
+                    console.log('📸 Manual screenshot saved:', saveResult);
+                } else {
+                    console.log('💾 Skipped saving screenshot (not manual)');
+                }
+                
                 const result = await ipcRenderer.invoke('send-image-content', {
                     data: base64data,
                 });
@@ -509,6 +518,25 @@ async function captureScreenshot(imageQuality = 'medium', isManual = false) {
 async function captureManualScreenshot(imageQuality = null) {
     console.log('Manual screenshot triggered');
     const quality = imageQuality || currentImageQuality;
+    // if (!mediaStream) {
+    //     console.log("⚠️ No capture running, starting one now...");
+    //     await startCapture("manual", quality);
+
+    //     // Wait until capture is initialized
+    //     let retries = 10;
+    //     while (!mediaStream && retries > 0) {
+    //         console.log("⏳ Waiting for mediaStream...");
+    //         await new Promise(r => setTimeout(r, 200));
+    //         retries--;
+    //     }
+
+    //     if (!mediaStream) {
+    //         console.error("❌ Failed to initialize capture session");
+    //         return;
+    //     }
+    //     console.log("📸 Capture started, taking screenshot...");
+    // }
+
     await captureScreenshot(quality, true); // Pass true for isManual
     await new Promise(resolve => setTimeout(resolve, 2000)); // TODO shitty hack
     await sendTextMessage(`Help me on this page, give me the answer no bs, complete answer.
