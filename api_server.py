@@ -508,6 +508,8 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
     job = STATE.jobs[job_id]
     job['status'] = 'running'
     job['started_at'] = time.time()
+    # Cache profile for emission (optional key)
+    job_profile = job.get('profile')
 
     try:
         # Build file manifest
@@ -559,7 +561,7 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
                     if isinstance(progress, dict):
                         start_at = STATE.jobs.get(job_id, {}).get('started_at')
                         elapsed_ms = int((time.time() - start_at) * 1000) if start_at else None
-                        ws_send_event(session_id, 'job.status', {
+                        js_payload = {
                             'state': 'running',
                             'job_id': job_id,
                             'completed_steps': progress.get('completed_steps'),
@@ -567,7 +569,10 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
                             'total_steps': progress.get('total_steps'),
                             'progress_ratio': round((progress.get('completed_steps',0)/ max(progress.get('total_steps',1),1)), 2),
                             **({'elapsed_ms': elapsed_ms} if elapsed_ms is not None else {})
-                        })
+                        }
+                        if job_profile:
+                            js_payload['profile'] = job_profile
+                        ws_send_event(session_id, 'job.status', js_payload)
                 agent_loop.on_step_start = _step_start  # type: ignore[attr-defined]
                 agent_loop.on_step_end = _step_end      # type: ignore[attr-defined]
                 context = None
@@ -583,8 +588,11 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
                 context = session_entry['context']
 
         # Execute (may extend existing context)
-        instrument_job_event(session_id, 'status', {'state': 'running', 'job_id': job_id, 'elapsed_ms': 0})
-        context = await agent_loop.run(query, file_manifest, files, context=context)
+        running_payload = {'state': 'running', 'job_id': job_id, 'elapsed_ms': 0}
+        if job_profile:
+            running_payload['profile'] = job_profile
+        instrument_job_event(session_id, 'status', running_payload)
+        context = await agent_loop.run(query, file_manifest, job_profile, files, context=context)
         session_entry['context'] = context
 
         # Collect summary & latest report
@@ -617,7 +625,7 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
             'output_chain_keys': list(output_chain.keys())
         }
         elapsed_ms = int((time.time() - job['started_at']) * 1000) if job.get('started_at') else None
-        instrument_job_event(session_id, 'status', {
+        completed_payload = {
             'state': 'completed',
             'job_id': job_id,
             'completed_steps': summary.get('completed_steps'),
@@ -625,7 +633,10 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
             'total_steps': summary.get('total_steps'),
             'progress_ratio': round((summary.get('completed_steps',0)/ max(summary.get('total_steps',1),1)), 2),
             **({'elapsed_ms': elapsed_ms} if elapsed_ms is not None else {})
-        })
+        }
+        if job_profile:
+            completed_payload['profile'] = job_profile
+        instrument_job_event(session_id, 'status', completed_payload)
         if report_info.get('found'):
             snippet = _sanitize_html_snippet(report_info.get('html','') or '')
             ws_send_event(session_id, 'report.final', {
@@ -642,14 +653,20 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
         job['status'] = 'timeout'
         job['finished_at'] = time.time()
         job['error'] = 'Job exceeded time limit'
-        instrument_job_event(session_id, 'status', {'state': 'timeout', 'job_id': job_id, 'elapsed_ms': int((time.time() - job['started_at']) * 1000) if job.get('started_at') else None})
+        timeout_payload = {'state': 'timeout', 'job_id': job_id, 'elapsed_ms': int((time.time() - job['started_at']) * 1000) if job.get('started_at') else None}
+        if job_profile:
+            timeout_payload['profile'] = job_profile
+        instrument_job_event(session_id, 'status', timeout_payload)
         ws_send_event(session_id, 'job.error', {'job_id': job_id, 'state': 'timeout', 'error': 'Job exceeded time limit'})
     except Exception as e:
         log_error(f"Job {job_id} failed: {e}")
         job['status'] = 'failed'
         job['finished_at'] = time.time()
         job['error'] = str(e)
-        instrument_job_event(session_id, 'status', {'state': 'failed', 'job_id': job_id, 'error': str(e), 'elapsed_ms': int((time.time() - job['started_at']) * 1000) if job.get('started_at') else None})
+        failed_payload = {'state': 'failed', 'job_id': job_id, 'error': str(e), 'elapsed_ms': int((time.time() - job['started_at']) * 1000) if job.get('started_at') else None}
+        if job_profile:
+            failed_payload['profile'] = job_profile
+        instrument_job_event(session_id, 'status', failed_payload)
         ws_send_event(session_id, 'job.error', {'job_id': job_id, 'state': 'failed', 'error': str(e)[:400]})
     finally:
         # Drop reference to future when done
@@ -671,13 +688,22 @@ def _validate_run_payload(data: Dict[str, Any]) -> Dict[str, Any]:
     missing = [f for f in files if not Path(f).exists()]
     if missing:
         abort(400, description=f"Missing files: {missing}")
+    # Profile selection (case-insensitive)
+    raw_profile = (data.get('profile') or '').strip().lower()
+    allowed_profiles = {'sales', 'interview'}
+    warning = None
+    if not raw_profile:
+        raw_profile = 'sales'
+    elif raw_profile not in allowed_profiles:
+        warning = f"Unknown profile '{raw_profile}', defaulted to 'sales'"
+        raw_profile = 'sales'
     session_id = data.get('session_id')
     if session_id is not None and session_id != '' and session_id not in STATE.sessions:
         # Treat as invalid given requirement 3
         abort(404, description='Invalid session_id')
     if not session_id:
         session_id = _generate_session_id()
-    return {'session_id': session_id, 'query': data['query'], 'files': files}
+    return {'session_id': session_id, 'query': data['query'], 'files': files, 'profile': raw_profile, **({'profile_warning': warning} if warning else {})}
 
 # ----------------------- Flask Endpoints ----------------------------
 
@@ -726,28 +752,45 @@ def run_job():
     session_id = payload['session_id']
     query = payload['query']
     files = payload['files']
+    profile = payload['profile']
+    profile_warning = payload.get('profile_warning')
 
     job_id = str(uuid.uuid4())
     STATE.jobs[job_id] = {
         'job_id': job_id,
         'session_id': session_id,
         'created_at': time.time(),
-        'status': 'queued'
-    }
+        'status': 'queued',
+        'profile': profile
+        }
 
     async def schedule():
+        # Attach profile to session context early so planner picks it up
+        with STATE.lock:
+            sess = STATE.sessions.get(session_id)
+            if sess and 'context' in sess and sess['context'] is not None:
+                try:
+                    sess_ctx = sess['context']
+                    if hasattr(sess_ctx, 'plan_graph'):
+                        sess_ctx.plan_graph.graph['planner_profile'] = profile
+                except Exception:
+                    pass
         await _job_with_timeout(job_id, session_id, query, files)
 
     assert STATE.loop is not None, "Async loop not started"
     fut = asyncio.run_coroutine_threadsafe(schedule(), STATE.loop)
     STATE.jobs[job_id]['future'] = fut
 
-    return jsonify({
+    base_resp = {
         'api_version': API_VERSION,
         'job_id': job_id,
         'session_id': session_id,
-        'status': 'queued'
-    })
+        'status': 'queued',
+        'profile': profile
+    }
+    if profile_warning:
+        base_resp['profile_warning'] = profile_warning
+    return jsonify(base_resp)
 
 @app.get('/job/<job_id>')
 def get_job(job_id: str):
@@ -765,7 +808,8 @@ def get_job(job_id: str):
         'started_at': job.get('started_at'),
         'finished_at': job.get('finished_at'),
         'duration': job.get('duration'),
-        'error': job.get('error')
+        'error': job.get('error'),
+        **({'profile': job.get('profile')} if job.get('profile') else {})
     }
     if job['status'] == 'completed':
         result_copy = dict(job['result'])

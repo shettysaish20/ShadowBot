@@ -98,3 +98,23 @@ function setupGeneralIpcHandlers() {
         }
     });
 }
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', () => {
+    const banner = document.createElement('div');
+    banner.textContent = 'DEBUG: Renderer loaded';
+    banner.style.position = 'fixed';
+    banner.style.top = '0';
+    banner.style.left = '0';
+    banner.style.width = '100vw';
+    banner.style.height = '32px';
+    banner.style.background = 'rgba(255,0,0,0.7)';
+    banner.style.color = '#fff';
+    banner.style.zIndex = '99999';
+    banner.style.fontSize = '18px';
+    banner.style.textAlign = 'center';
+    banner.style.lineHeight = '32px';
+    banner.style.pointerEvents = 'none';
+    document.body.appendChild(banner);
+  });
+}

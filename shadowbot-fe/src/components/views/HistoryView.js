@@ -1,5 +1,6 @@
 import { html, css, LitElement } from '../../assets/lit-core-2.7.4.min.js';
 import { resizeLayout } from '../../utils/windowResize.js';
+import { listHistorySessions, getHistorySessionDetail, getHistoryReportHtml } from '../../utils/historyApi.js';
 
 export class HistoryView extends LitElement {
     static styles = css`
@@ -310,6 +311,11 @@ export class HistoryView extends LitElement {
         loading: { type: Boolean },
         activeTab: { type: String },
         savedResponses: { type: Array },
+        remoteSessions: { type: Array },
+        remoteLoading: { type: Boolean },
+        remoteError: { type: String },
+        remoteDetail: { type: Object },
+        remoteReport: { type: String },
     };
 
     constructor() {
@@ -324,7 +330,13 @@ export class HistoryView extends LitElement {
         } catch (e) {
             this.savedResponses = [];
         }
-        this.loadSessions();
+        this.remoteSessions = [];
+        this.remoteLoading = false;
+        this.remoteError = null;
+        this.remoteDetail = null;
+        this.remoteReport = null;
+        // remove eager loading of remote sessions; only load local immediately
+        this.loadLocalSessions();
     }
 
     connectedCallback() {
@@ -333,15 +345,55 @@ export class HistoryView extends LitElement {
         resizeLayout();
     }
 
+    async loadLocalSessions() {
+        try {
+            this.loading = true;
+            if (window.cheddar && typeof cheddar.getAllConversationSessions === 'function') {
+                this.sessions = await cheddar.getAllConversationSessions();
+            } else {
+                console.warn('cheddar API not available');
+                this.sessions = [];
+            }
+        } catch (e) {
+            console.error('Error loading local sessions', e);
+        } finally {
+            this.loading = false;
+        }
+    }
+
+    async loadRemoteSessions(limit = 150) {
+        if (this.remoteLoading || this.remoteSessions.length) return; // already loaded or loading
+        this.remoteLoading = true;
+        try {
+            const resp = await listHistorySessions(limit);
+            this.remoteSessions = resp.sessions || [];
+        } catch (e) {
+            console.error('Error loading remote sessions', e);
+            this.remoteError = String(e);
+        } finally {
+            this.remoteLoading = false;
+        }
+    }
+
+    firstUpdated() {
+        // defer remote load to next tick to avoid blocking startup
+        setTimeout(() => this.loadRemoteSessions(), 0);
+    }
+
     async loadSessions() {
         try {
             this.loading = true;
             this.sessions = await cheddar.getAllConversationSessions();
+            // also load remote
+            this.remoteLoading = true;
+            const resp = await listHistorySessions(150);
+            this.remoteSessions = resp.sessions || [];
         } catch (error) {
             console.error('Error loading conversation sessions:', error);
-            this.sessions = [];
+            this.remoteError = String(error);
         } finally {
             this.loading = false;
+            this.remoteLoading = false;
         }
     }
 
@@ -384,6 +436,11 @@ export class HistoryView extends LitElement {
 
     handleSessionClick(session) {
         this.selectedSession = session;
+        // if remote session enrich
+        if (session && session.session_id) {
+            getHistorySessionDetail(session.session_id).then(d => { this.remoteDetail = d; this.requestUpdate(); }).catch(()=>{});
+            getHistoryReportHtml(session.session_id).then(h => { this.remoteReport = h; this.requestUpdate(); }).catch(()=>{});
+        }
     }
 
     handleBackClick() {
@@ -554,22 +611,38 @@ export class HistoryView extends LitElement {
 
     render() {
         if (this.selectedSession) {
-            return html`<div class="history-container">${this.renderConversationView()}</div>`;
-        }
-
-        return html`
-            <div class="history-container">
-                <div class="tabs-container">
-                    <button class="tab ${this.activeTab === 'sessions' ? 'active' : ''}" @click=${() => this.handleTabClick('sessions')}>
-                        Conversation History
-                    </button>
-                    <button class="tab ${this.activeTab === 'saved' ? 'active' : ''}" @click=${() => this.handleTabClick('saved')}>
-                        Saved Responses (${this.savedResponses.length})
-                    </button>
+            const isRemote = !!this.selectedSession.session_id; // remote sessions have session_id; local structure may differ
+            return html`<div class="history-container">
+                <div class="back-header">
+                    <button class="back-button" @click=${() => this.handleBackClick()}>Back</button>
+                    <div>${isRemote ? 'Remote Session' : 'Local Session'}</div>
                 </div>
-                ${this.activeTab === 'sessions' ? this.renderSessionsList() : this.renderSavedResponses()}
+                <div class="conversation-view">
+                    ${isRemote && this.remoteDetail ? html`<pre style="white-space:pre-wrap; font-size:11px;">${JSON.stringify(this.remoteDetail.detail, null, 2)}</pre>`: ''}
+                    ${isRemote && this.remoteReport ? html`<hr/><div><strong>Report Preview (raw HTML)</strong></div><div style="border:1px solid var(--button-border);padding:6px;max-height:300px;overflow:auto;font-size:11px;">${this.remoteReport.slice(0,4000)}</div>`:''}
+                </div>
+            </div>`;
+        }
+        return html`<div class="history-container">
+            <div class="tabs-container">
+                <button class="tab active">Sessions</button>
             </div>
-        `;
+            <div class="sessions-list">
+                ${this.remoteLoading ? html`<div class="loading">Loading remote...</div>`: ''}
+                ${this.remoteError ? html`<div class="loading" style="color:#ff6666;">${this.remoteError}</div>`: ''}
+                ${this.remoteSessions.map(rs => html`<div class="session-item" @click=${() => this.handleSessionClick(rs)}>
+                    <div class="session-header">
+                        <div class="session-date">${rs.session_id}</div>
+                        <div class="session-time">${rs.started_at ? new Date(rs.started_at).toLocaleString() : ''}</div>
+                    </div>
+                    <div class="session-preview">${(rs.user_preview || rs.ai_preview || '').slice(0,120)}</div>
+                </div>`)}
+                ${this.sessions.map(ls => html`<div class="session-item" @click=${() => this.handleSessionClick(ls)}>
+                    <div class="session-header"><div class="session-date">Local</div><div class="session-time">${ls.id || ''}</div></div>
+                    <div class="session-preview">${(ls.conversationHistory && ls.conversationHistory[0] && (ls.conversationHistory[0].transcription||ls.conversationHistory[0].ai_response||'')).slice(0,120)}</div>
+                </div>`)}
+            </div>
+        </div>`;
     }
 }
 

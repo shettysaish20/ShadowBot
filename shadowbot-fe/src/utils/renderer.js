@@ -485,7 +485,16 @@ async function captureScreenshot(imageQuality = 'medium', isManual = false) {
                     console.error('Invalid base64 data generated');
                     return;
                 }
-
+                
+                // Save screenshot locally
+                const buffer = Buffer.from(base64data, 'base64');
+                if (isManual) {
+                    const saveResult = await ipcRenderer.invoke('save-screenshot', buffer);
+                    console.log('📸 Manual screenshot saved:', saveResult);
+                } else {
+                    console.log('💾 Skipped saving screenshot (not manual)');
+                }
+                
                 const result = await ipcRenderer.invoke('send-image-content', {
                     data: base64data,
                 });
@@ -509,6 +518,25 @@ async function captureScreenshot(imageQuality = 'medium', isManual = false) {
 async function captureManualScreenshot(imageQuality = null) {
     console.log('Manual screenshot triggered');
     const quality = imageQuality || currentImageQuality;
+    // if (!mediaStream) {
+    //     console.log("⚠️ No capture running, starting one now...");
+    //     await startCapture("manual", quality);
+
+    //     // Wait until capture is initialized
+    //     let retries = 10;
+    //     while (!mediaStream && retries > 0) {
+    //         console.log("⏳ Waiting for mediaStream...");
+    //         await new Promise(r => setTimeout(r, 200));
+    //         retries--;
+    //     }
+
+    //     if (!mediaStream) {
+    //         console.error("❌ Failed to initialize capture session");
+    //         return;
+    //     }
+    //     console.log("📸 Capture started, taking screenshot...");
+    // }
+
     await captureScreenshot(quality, true); // Pass true for isManual
     await new Promise(resolve => setTimeout(resolve, 2000)); // TODO shitty hack
     await sendTextMessage(`Help me on this page, give me the answer no bs, complete answer.
@@ -736,3 +764,57 @@ const cheddar = {
 
 // Make it globally available
 window.cheddar = cheddar;
+
+// (function () {
+//     try {
+//         const banner = document.createElement('div');
+//         banner.textContent = 'DEBUG: Renderer loaded';
+//         banner.style.position = 'fixed';
+//         banner.style.top = '0';
+//         banner.style.left = '0';
+//         banner.style.width = '100vw';
+//         banner.style.height = '32px';
+//         banner.style.background = 'rgba(0,128,0,0.7)';
+//         banner.style.color = '#fff';
+//         banner.style.zIndex = '99999';
+//         banner.style.fontSize = '18px';
+//         banner.style.textAlign = 'center';
+//         banner.style.lineHeight = '32px';
+//         banner.style.pointerEvents = 'none';
+//         document.body.appendChild(banner);
+//         window.addEventListener('error', function (e) {
+//             const errBanner = document.createElement('div');
+//             errBanner.textContent = 'RENDERER ERROR: ' + (e.message || e.error);
+//             errBanner.style.position = 'fixed';
+//             errBanner.style.top = '32px';
+//             errBanner.style.left = '0';
+//             errBanner.style.width = '100vw';
+//             errBanner.style.height = '32px';
+//             errBanner.style.background = 'rgba(255,0,0,0.8)';
+//             errBanner.style.color = '#fff';
+//             errBanner.style.zIndex = '99999';
+//             errBanner.style.fontSize = '16px';
+//             errBanner.style.textAlign = 'center';
+//             errBanner.style.lineHeight = '32px';
+//             errBanner.style.pointerEvents = 'none';
+//             document.body.appendChild(errBanner);
+//         });
+//         window.addEventListener('unhandledrejection', function (e) {
+//             const errBanner = document.createElement('div');
+//             errBanner.textContent = 'RENDERER PROMISE ERROR: ' + (e.reason && e.reason.message ? e.reason.message : e.reason);
+//             errBanner.style.position = 'fixed';
+//             errBanner.style.top = '64px';
+//             errBanner.style.left = '0';
+//             errBanner.style.width = '100vw';
+//             errBanner.style.height = '32px';
+//             errBanner.style.background = 'rgba(255,128,0,0.8)';
+//             errBanner.style.color = '#fff';
+//             errBanner.style.zIndex = '99999';
+//             errBanner.style.fontSize = '16px';
+//             errBanner.style.textAlign = 'center';
+//             errBanner.style.lineHeight = '32px';
+//             errBanner.style.pointerEvents = 'none';
+//             document.body.appendChild(errBanner);
+//         });
+//     } catch (e) { }
+// })();

@@ -1,4 +1,6 @@
 import { html, css, LitElement } from '../../assets/lit-core-2.7.4.min.js';
+import { configure as agentConfigure, runJob as agentRunJob, cancelJob as agentCancelJob, subscribe as agentSubscribe, getSnapshot as agentGetSnapshot } from '../../utils/agentStream.js';
+// Deprecated: no longer fetching full report via history endpoint; relying solely on WS report.final payload
 
 export class AssistantView extends LitElement {
     static styles = css`
@@ -305,7 +307,7 @@ export class AssistantView extends LitElement {
         this.responses = [];
         this.currentResponseIndex = -1;
         this.selectedProfile = 'interview';
-        this.onSendText = () => {};
+        this.onSendText = () => { };
         this._lastAnimatedWordCount = 0;
         // Load saved responses from localStorage
         try {
@@ -313,6 +315,10 @@ export class AssistantView extends LitElement {
         } catch (e) {
             this.savedResponses = [];
         }
+        this._agentUnsub = null;
+        this._agentState = { job: null, steps: {}, report: null, connected: false };
+    // Deprecated full-report fetch state removed
+        this._lastSnippetApplied = null;
     }
 
     getProfileNames() {
@@ -471,7 +477,24 @@ export class AssistantView extends LitElement {
             ipcRenderer.on('scroll-response-up', this.handleScrollUp);
             ipcRenderer.on('scroll-response-down', this.handleScrollDown);
         }
+
+        // Start agent stream (fire-and-forget)
+        agentConfigure({}).catch(e => console.warn('Agent configure failed', e));
+        this._agentUnsub = agentSubscribe(async st => {
+            this._agentState = st;
+            // No longer performing follow-up fetch; report.final payload is authoritative
+            this.requestUpdate();
+        });
     }
+
+    _sanitizeSnippet(html) {
+        if (!html || typeof html !== 'string') return '';
+        // Basic safety: strip script/style tags just in case
+        return html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    }
+
+    // Removed _fetchReportOnce and _scheduleReportFetch (deprecated full report endpoint)
 
     disconnectedCallback() {
         super.disconnectedCallback();
@@ -492,14 +515,20 @@ export class AssistantView extends LitElement {
                 ipcRenderer.removeListener('scroll-response-down', this.handleScrollDown);
             }
         }
+
+        if (this._agentUnsub) { try { this._agentUnsub(); } catch (_) { } this._agentUnsub = null; }
     }
 
     async handleSendText() {
         const textInput = this.shadowRoot.querySelector('#textInput');
         if (textInput && textInput.value.trim()) {
             const message = textInput.value.trim();
-            textInput.value = ''; // Clear input
-            await this.onSendText(message);
+            textInput.value = '';
+            try {
+                await agentRunJob(message, [], this.selectedProfile);
+            } catch (e) {
+                console.error('runJob error', e);
+            }
         }
     }
 
@@ -541,62 +570,56 @@ export class AssistantView extends LitElement {
         return this.savedResponses.some(saved => saved.response === currentResponse);
     }
 
-    firstUpdated() {
-        super.firstUpdated();
-        this.updateResponseContent();
-    }
-
+    firstUpdated() { super.firstUpdated(); }
     updated(changedProperties) {
         super.updated(changedProperties);
-        if (changedProperties.has('responses') || changedProperties.has('currentResponseIndex')) {
-            if (changedProperties.has('currentResponseIndex')) {
-                this._lastAnimatedWordCount = 0;
+        // Apply snippet HTML when present
+        const report = this._agentState.report;
+        if (report && report.snippet && report.snippet !== this._lastSnippetApplied) {
+            const cont = this.shadowRoot && this.shadowRoot.querySelector('#finalReportSnippet');
+            if (cont) {
+                cont.innerHTML = this._sanitizeSnippet(report.snippet);
+                this._lastSnippetApplied = report.snippet;
             }
-            this.updateResponseContent();
         }
+    // Full report iframe logic removed
     }
 
-    updateResponseContent() {
-        console.log('updateResponseContent called');
-        const container = this.shadowRoot.querySelector('#responseContainer');
-        if (container) {
-            const currentResponse = this.getCurrentResponse();
-            console.log('Current response:', currentResponse);
-            const renderedResponse = this.renderMarkdown(currentResponse);
-            console.log('Rendered response:', renderedResponse);
-            container.innerHTML = renderedResponse;
-            const words = container.querySelectorAll('[data-word]');
-            if (this.shouldAnimateResponse) {
-                for (let i = 0; i < this._lastAnimatedWordCount && i < words.length; i++) {
-                    words[i].classList.add('visible');
-                }
-                for (let i = this._lastAnimatedWordCount; i < words.length; i++) {
-                    words[i].classList.remove('visible');
-                    setTimeout(() => {
-                        words[i].classList.add('visible');
-                        if (i === words.length - 1) {
-                            this.dispatchEvent(new CustomEvent('response-animation-complete', { bubbles: true, composed: true }));
-                        }
-                    }, (i - this._lastAnimatedWordCount) * 100);
-                }
-                this._lastAnimatedWordCount = words.length;
-            } else {
-                words.forEach(word => word.classList.add('visible'));
-                this._lastAnimatedWordCount = words.length;
-            }
-        } else {
-            console.log('Response container not found');
-        }
-    }
-
+    // Add small header bar to show running job and profile
     render() {
+        const snapshot = agentGetSnapshot();
+        const currentJobProfile = snapshot?.job?.profile || this.selectedProfile;
         const currentResponse = this.getCurrentResponse();
         const responseCounter = this.getResponseCounter();
         const isSaved = this.isResponseSaved();
-
+        const job = this._agentState.job || {};
+        const report = this._agentState.report;
+        const running = job.state === 'running';
+        const terminal = ['completed', 'failed', 'timeout', 'canceled'].includes(job.state);
+        const status = this._agentState.connectionStatus || (this._agentState.connected ? 'connected' : 'idle');
+        const reconnectInfo = (status === 'reconnecting') ? ` (retry ${this._agentState.reconnectAttempts})` : '';
+        const statusColors = { connected: '#2ecc71', connecting: '#f1c40f', reconnecting: '#e67e22', stalled: '#e67e22', error: '#e74c3c', closed: '#95a5a6', idle: '#7f8c8d' };
+        const color = statusColors[status] || '#7f8c8d';
         return html`
-            <div class="response-container" id="responseContainer"></div>
-
+            <div style="position:absolute;top:6px;right:8px;font-size:11px;display:flex;align-items:center;gap:6px;z-index:10;">
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid ${color};border-radius:12px;color:${color};background:rgba(255,255,255,0.05);">
+                <span style="width:8px;height:8px;border-ra dius:50%;background:${color};"></span>
+                WS ${status}${reconnectInfo}
+            </span>
+            ${status === 'error' || status === 'closed' ? html`<button style="background:transparent;border:1px solid ${color};color:${color};border-radius:10px;padding:2px 6px;font-size:10px;cursor:pointer;" @click=${() => window.shadowAgent && window.shadowAgent.forceReconnect()}>Retry</button>` : ''}
+            </div>
+            <div style="padding:4px 8px;font-size:12px;color:var(--description-color);display:flex;gap:12px;align-items:center;">
+                <span>Profile: <strong>${currentJobProfile}</strong></span>
+                ${snapshot.job && snapshot.job.state === 'running' ? html`<span>Running job ...</span>` : ''}
+            </div>
+            <div class="response-container" id="responseContainer">
+                ${running ? html`<div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">Running job... ${job.completed_steps || 0}/${job.total_steps || 0} (${Math.round((job.progress_ratio || 0) * 100)}%)</div>` : ''}
+                ${job.state && !running ? html`<div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">Job state: ${job.state}</div>` : ''}
+                                                ${report ? html`<div class="final-report"><h4>Final Report</h4>
+                                                    <div id="finalReportSnippet" style="font-size:12px;line-height:1.4;white-space:normal;"></div>
+                                                </div>`: ''}
+                <!-- Response rendering temporarily disabled to avoid DOM conflicts -->
+            </div>
             <div class="text-input-container">
                 <button class="nav-button" @click=${this.navigateToPreviousResponse} ?disabled=${this.currentResponseIndex <= 0}>
                     <?xml version="1.0" encoding="UTF-8"?><svg

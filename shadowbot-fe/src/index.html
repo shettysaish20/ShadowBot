@@ -3,6 +3,20 @@
     <head>
         <meta http-equiv="content-security-policy" content="script-src 'self' 'unsafe-inline'" />
         <title>Screen and Audio Capture</title>
+                <!-- <script>
+                    // Early diagnostics: log first 120 chars of the HTML source as fetched
+                    try {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('GET', window.location.href, false);
+                        xhr.send(null);
+                        if (xhr.status === 200) {
+                            const txt = xhr.responseText || '';
+                            console.log('[INDEX.HTML DIAG] first120=', txt.slice(0,120).replace(/\n/g,'\\n'));
+                        } else {
+                            console.log('[INDEX.HTML DIAG] fetch status', xhr.status);
+                        }
+                    } catch(e){ console.log('[INDEX.HTML DIAG] error fetching self', e); }
+                </script> -->
         <style>
             :root {
                 --background-transparent: transparent;
@@ -104,7 +118,27 @@
         <script type="module" src="components/app/ShadowBotApp.js"></script>
 
         <shadow-bot-app id="cheddar"></shadow-bot-app>
-        <script src="script.js"></script>
+        <!-- <script>
+          // Global enhanced error diagnostics
+          window.addEventListener('error', function(e){
+            try {
+              const diag = document.createElement('div');
+              diag.style.position='fixed';
+              diag.style.bottom='0';
+              diag.style.left='0';
+              diag.style.maxHeight='40vh';
+              diag.style.overflow='auto';
+              diag.style.width='100%';
+              diag.style.background='rgba(0,0,0,0.85)';
+              diag.style.color='#ff6666';
+              diag.style.font='12px monospace';
+              diag.style.zIndex='100000';
+              diag.style.padding='6px 8px';
+              diag.textContent = '[GLOBAL ERROR] ' + (e.message||'') + ' file=' + (e.filename||'') + ':' + e.lineno + ':' + e.colno + (e.error && e.error.stack ? '\n' + e.error.stack : '');
+              document.body.appendChild(diag);
+            } catch(_){ }
+          });
+        </script> -->
         <script src="utils/renderer.js"></script>
     </body>
 </html>

@@ -429,7 +429,7 @@ export class ShadowBotApp extends LitElement {
                 `;
 
             case 'help':
-                return html` <help-view .onExternalLinkClick=${url => this.handleExternalLinkClick(url)}></help-view> `;
+                return html` <help-view .onExternalLinkClick=${url => this.handleExternalLinkClick(url)} @profile-selected=${e => this.handleProfileSelectionEvent(e)}></help-view> `;
 
             case 'history':
                 return html` <history-view></history-view> `;

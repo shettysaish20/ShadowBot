@@ -470,12 +470,12 @@ export class CustomizeView extends LitElement {
                 value: 'sales',
                 name: 'Customer Support Call',
                 description: 'Assist with customer support conversations',
-            },
-            {
-                value: 'meeting',
-                name: 'AI Notetaker',
-                description: 'Support for professional meetings and discussions',
-            }    
+            }
+            // {
+            //     value: 'meeting',
+            //     name: 'AI Notetaker',
+            //     description: 'Support for professional meetings and discussions',
+            // }    
         ];
     }
 
@@ -518,7 +518,7 @@ export class CustomizeView extends LitElement {
         return {
             interview: 'Job Interview',
             sales: 'Customer Support Call',
-            meeting: 'AI Notetaker'
+            // meeting: 'AI Notetaker'
         };
     }
 
