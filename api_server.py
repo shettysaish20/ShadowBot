@@ -139,6 +139,20 @@ def _loop_thread_target(loop: asyncio.AbstractEventLoop):
     loop.run_forever()
 
 def ensure_loop_started():
+    """Idempotently ensure a live, running asyncio loop/thread exists.
+
+    If a previous loop object exists but is stopped/closed (after /shutdown),
+    discard it and create a fresh one so subsequent run/start calls don't hang
+    when scheduling coroutines (root cause of prior restart freeze)."""
+    # Detect stale loop (stopped or closed)
+    if STATE.loop is not None:
+        try:
+            if STATE.loop.is_closed() or not STATE.loop.is_running():  # type: ignore[attr-defined]
+                STATE.loop = None
+                STATE.loop_thread = None
+        except Exception:
+            STATE.loop = None
+            STATE.loop_thread = None
     if STATE.loop is None:
         loop = asyncio.new_event_loop()
         t = threading.Thread(target=_loop_thread_target, args=(loop,), daemon=True)
@@ -931,16 +945,44 @@ def shutdown_system():
                 await STATE.multi_mcp.shutdown()
         except Exception as e:
             log_error(f'Shutdown error: {e}')
-    if STATE.loop is not None:
-        fut = asyncio.run_coroutine_threadsafe(_shutdown(), STATE.loop)
+    loop = STATE.loop
+    if loop is not None:
+        # Run async shutdown tasks first
         try:
+            fut = asyncio.run_coroutine_threadsafe(_shutdown(), loop)
             fut.result(timeout=15)
         except Exception:
             pass
-        # Stop loop
-        STATE.loop.call_soon_threadsafe(STATE.loop.stop)
+        # Gracefully cancel remaining tasks then stop loop
+        def _graceful_stop():
+            try:
+                for task in asyncio.all_tasks(loop):  # type: ignore[arg-type]
+                    if not task.done():
+                        task.cancel()
+            except Exception:
+                pass
+            loop.stop()
+        try:
+            loop.call_soon_threadsafe(_graceful_stop)
+        except Exception:
+            pass
+        # Join loop thread to ensure it's fully stopped before clearing references
+        if STATE.loop_thread and STATE.loop_thread.is_alive():
+            STATE.loop_thread.join(timeout=5)
+        # Close loop (safe even if already stopped)
+        try:
+            loop.close()
+        except Exception:
+            pass
+    # Clear runtime state so a fresh /start works
+    STATE.loop = None
+    STATE.loop_thread = None
+    STATE.multi_mcp = None
+    STATE.sessions.clear()
+    STATE.jobs.clear()
+    # NOTE: keep websocket channel dict; sweeper thread (daemon) can purge stale entries
     STATE.started = False
-    return jsonify({'api_version': API_VERSION, 'status': 'stopped'})
+    return jsonify({'api_version': API_VERSION, 'status': 'stopped', 'detail': 'loop terminated and state cleared'})
 
 @app.get('/debug/tasks')
 def debug_tasks():
