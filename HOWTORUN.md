@@ -8,3 +8,6 @@ Check:
 - Open www.inkers.ai in a new tab, and then click on contact button. Then subscribe me for updated. Use email as: rohan@test.com and Name as "Rohan". Remember, whenever we access broswer tools, we get the list of all interactable elements along with commands to use them back. So all the data will be there in the globals. 
 - To run BrowserMCP in debug mode: S12>uv run mcp dev browserMCP/browser_mcp_stdio.py
 - Open www.inkers.ai in browser, click "Contact" and subscribe me with Name: Rohan and email: rohan@test.com. Remind Decision that everytime we use ANY browser based tools, they return the next state of the browser. So Alwasy use return = tool_name. This return value will store the state and indexes of interactive elements and we will need them to click, or till in things. 
+
+
+- TEST CHANGE
