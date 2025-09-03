@@ -244,6 +244,11 @@ export class ShadowBotApp extends LitElement {
                 const { ipcRenderer } = window.require('electron');
                 await ipcRenderer.invoke('close-session');
             }
+            // Reset agent backend session so next start is fresh
+            try {
+                const av = this.shadowRoot.querySelector('assistant-view');
+                if (av && av.resetConversationSession) av.resetConversationSession();
+            } catch (e) { console.warn('reset on close failed', e); }
             this.sessionActive = false;
             this.currentView = 'main';
             console.log('Session closed');
@@ -275,6 +280,13 @@ export class ShadowBotApp extends LitElement {
             }
             return;
         }
+
+        // Always reset any stale agent session before starting a new one
+        try {
+            if (window.shadowAgent && window.shadowAgent.resetSession) {
+                window.shadowAgent.resetSession();
+            }
+        } catch (e) { console.warn('agent reset before start failed', e); }
 
         await cheddar.initializeGemini(this.selectedProfile, this.selectedLanguage);
         // Pass the screenshot interval as string (including 'manual' option)

@@ -341,6 +341,41 @@ export function getLastEvents(count = 50) {
 export function currentSessionId() { return _state.sessionId; }
 export function currentJobId() { return _state.jobId; }
 
+// -------------------- Session Reset --------------------
+// Explicitly abandon current session context so the next run creates a fresh session_id.
+// Also clears job/step/report state and closes any active websocket.
+export function resetSession(options = {}) {
+    const { preserveBaseUrl = true } = options;
+    if (_state.ws) {
+        try { _state.closedManually = true; _state.ws.close(); } catch (_) { }
+    }
+    const baseUrl = _state.baseUrl;
+    Object.assign(_state, {
+        sessionId: null,
+        jobId: null,
+        ws: null,
+        wsUrl: null,
+        connected: false,
+        connecting: false,
+        lastSeq: null,
+        lastHeartbeatAt: 0,
+        reconnectAttempts: 0,
+        closedManually: false,
+        job: null,
+        steps: {},
+        report: null,
+        errors: [],
+        gap: null,
+        eventLog: [],
+        connectionStatus: 'idle',
+        lastEventAt: 0,
+        lastError: null,
+        nextReconnectDelayMs: 0,
+    });
+    if (preserveBaseUrl) _state.baseUrl = baseUrl; // restore baseUrl if needed
+    _notify();
+}
+
 // Attach to window for debugging (optional)
 if (typeof window !== 'undefined') {
     window.shadowAgent = {
@@ -353,5 +388,6 @@ if (typeof window !== 'undefined') {
         forceDisconnect,
         setDebug,
         forceReconnect,
+        resetSession,
     };
 }

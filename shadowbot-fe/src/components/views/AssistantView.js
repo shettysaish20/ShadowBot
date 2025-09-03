@@ -1,5 +1,5 @@
 import { html, css, LitElement } from '../../assets/lit-core-2.7.4.min.js';
-import { configure as agentConfigure, runJob as agentRunJob, cancelJob as agentCancelJob, subscribe as agentSubscribe, getSnapshot as agentGetSnapshot } from '../../utils/agentStream.js';
+import { configure as agentConfigure, runJob as agentRunJob, cancelJob as agentCancelJob, subscribe as agentSubscribe, getSnapshot as agentGetSnapshot, resetSession as agentResetSession } from '../../utils/agentStream.js';
 // Deprecated: no longer fetching full report via history endpoint; relying solely on WS report.final payload
 
 export class AssistantView extends LitElement {
@@ -517,6 +517,22 @@ export class AssistantView extends LitElement {
         }
 
         if (this._agentUnsub) { try { this._agentUnsub(); } catch (_) { } this._agentUnsub = null; }
+    }
+
+    // External API: allow parent components / app shell to force resetting the backend session
+    // Usage: document.querySelector('assistant-view').resetConversationSession();
+    resetConversationSession() {
+        try {
+            agentResetSession();
+            // Clear local UI artifacts
+            this.responses = [];
+            this.currentResponseIndex = -1;
+            this._agentState = { job: null, steps: {}, report: null, connected: false };
+            this._lastSnippetApplied = null;
+            this.requestUpdate();
+        } catch (e) {
+            console.warn('resetConversationSession failed', e);
+        }
     }
 
     async handleSendText() {
