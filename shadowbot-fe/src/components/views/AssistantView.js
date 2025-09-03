@@ -1,5 +1,5 @@
 import { html, css, LitElement } from '../../assets/lit-core-2.7.4.min.js';
-import { configure as agentConfigure, runJob as agentRunJob, cancelJob as agentCancelJob, subscribe as agentSubscribe, getSnapshot as agentGetSnapshot } from '../../utils/agentStream.js';
+import { configure as agentConfigure, runJob as agentRunJob, cancelJob as agentCancelJob, subscribe as agentSubscribe, getSnapshot as agentGetSnapshot, uploadImages } from '../../utils/agentStream.js';
 // Deprecated: no longer fetching full report via history endpoint; relying solely on WS report.final payload
 
 export class AssistantView extends LitElement {
@@ -319,6 +319,9 @@ export class AssistantView extends LitElement {
         this._agentState = { job: null, steps: {}, report: null, connected: false };
     // Deprecated full-report fetch state removed
         this._lastSnippetApplied = null;
+        // Image capture functionality
+        this._currentImages = [];
+        this._isCapturingImages = false;
     }
 
     getProfileNames() {
@@ -524,11 +527,49 @@ export class AssistantView extends LitElement {
         if (textInput && textInput.value.trim()) {
             const message = textInput.value.trim();
             textInput.value = '';
+            
             try {
-                await agentRunJob(message, [], this.selectedProfile);
+                // Capture current screenshot if available
+                console.log('Capturing screenshot for message...');
+                const images = await this._captureCurrentScreenshot();
+                console.log('Screenshots captured:', images.length);
+                
+                // Show status while processing
+                this.dispatchEvent(new CustomEvent('status-update', {
+                    detail: { status: images.length > 0 ? 'Sending message with screenshot...' : 'Sending message...' }
+                }));
+                
+                await agentRunJob(message, [], this.selectedProfile, images);
+                console.log('Message sent successfully with', images.length, 'images');
             } catch (e) {
                 console.error('runJob error', e);
+                this.dispatchEvent(new CustomEvent('status-update', {
+                    detail: { status: 'Error: ' + e.message }
+                }));
             }
+        }
+    }
+    
+    async _captureCurrentScreenshot() {
+        try {
+            // Request screenshot from the renderer
+            if (window.cheddar && window.cheddar.getCurrentScreenshot) {
+                console.log('Requesting screenshot from renderer...');
+                const screenshot = await window.cheddar.getCurrentScreenshot();
+                if (screenshot) {
+                    console.log('Screenshot captured successfully, size:', screenshot.length, 'chars');
+                    return [screenshot];
+                } else {
+                    console.log('No screenshot available from renderer');
+                    return [];
+                }
+            } else {
+                console.log('Screenshot function not available on window.cheddar');
+                return [];
+            }
+        } catch (e) {
+            console.warn('Failed to capture screenshot for message:', e);
+            return [];
         }
     }
 
@@ -662,7 +703,7 @@ export class AssistantView extends LitElement {
                     </svg>
                 </button>
 
-                <input type="text" id="textInput" placeholder="Type a message to the AI..." @keydown=${this.handleTextKeydown} />
+                <input type="text" id="textInput" placeholder="Type a message to the AI (screenshot will be included)..." @keydown=${this.handleTextKeydown} />
 
                 <button class="nav-button" @click=${this.navigateToNextResponse} ?disabled=${this.currentResponseIndex >= this.responses.length - 1}>
                     <?xml version="1.0" encoding="UTF-8"?><svg
