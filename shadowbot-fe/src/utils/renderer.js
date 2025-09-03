@@ -546,6 +546,92 @@ async function captureManualScreenshot(imageQuality = null) {
         `);
 }
 
+// Function to get current screenshot as base64 for messaging
+async function getCurrentScreenshot(imageQuality = null) {
+    console.log('Getting current screenshot for message');
+    if (!mediaStream) {
+        console.warn('No media stream available for screenshot');
+        return null;
+    }
+    
+    const quality = imageQuality || currentImageQuality;
+    
+    return new Promise((resolve) => {
+        // Lazy init of video element if needed
+        if (!hiddenVideo) {
+            hiddenVideo = document.createElement('video');
+            hiddenVideo.srcObject = mediaStream;
+            hiddenVideo.muted = true;
+            hiddenVideo.playsInline = true;
+            hiddenVideo.play().then(() => {
+                hiddenVideo.onloadedmetadata = () => {
+                    _captureScreenshotData(quality).then(resolve);
+                };
+            });
+        } else {
+            _captureScreenshotData(quality).then(resolve);
+        }
+    });
+}
+
+async function _captureScreenshotData(imageQuality) {
+    if (!hiddenVideo || hiddenVideo.readyState < 2) {
+        console.warn('Video not ready for screenshot capture');
+        return null;
+    }
+    
+    // Lazy init of canvas based on video dimensions
+    if (!offscreenCanvas) {
+        offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = hiddenVideo.videoWidth;
+        offscreenCanvas.height = hiddenVideo.videoHeight;
+        offscreenContext = offscreenCanvas.getContext('2d');
+    }
+    
+    offscreenContext.drawImage(hiddenVideo, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+    
+    let qualityValue;
+    switch (imageQuality) {
+        case 'high':
+            qualityValue = 0.9;
+            break;
+        case 'medium':
+            qualityValue = 0.7;
+            break;
+        case 'low':
+            qualityValue = 0.5;
+            break;
+        default:
+            qualityValue = 0.7;
+    }
+    
+    return new Promise((resolve) => {
+        offscreenCanvas.toBlob(
+            (blob) => {
+                if (!blob) {
+                    console.error('Failed to create blob from canvas');
+                    resolve(null);
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64data = reader.result.split(',')[1];
+                    if (!base64data || base64data.length < 100) {
+                        console.error('Invalid base64 data generated');
+                        resolve(null);
+                        return;
+                    }
+                    resolve(base64data);
+                };
+                reader.readAsDataURL(blob);
+            },
+            'image/jpeg',
+            qualityValue
+        );
+    });
+}
+
 // Expose functions to global scope for external access
 window.captureManualScreenshot = captureManualScreenshot;
 
@@ -745,6 +831,7 @@ const cheddar = {
     stopCapture,
     sendTextMessage,
     handleShortcut,
+    getCurrentScreenshot,
 
     // Conversation history functions
     getAllConversationSessions,
