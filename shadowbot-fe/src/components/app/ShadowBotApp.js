@@ -342,14 +342,15 @@ export class ShadowBotApp extends LitElement {
 
     // Assistant view event handlers
     async handleSendText(message) {
-        const result = await window.cheddar.sendTextMessage(message);
-
-        if (!result.success) {
-            console.error('Failed to send message:', result.error);
-            this.setStatus('Error sending message: ' + result.error);
-        } else {
-            this.setStatus('Message sent...');
+        // Use new agent-based messaging instead of legacy sendTextMessage
+        try {
+            this.setStatus('Sending message...');
             this._awaitingNewResponse = true;
+            // Note: The AssistantView now handles image capture and agentRunJob internally
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            this.setStatus('Error sending message: ' + error.message);
+            this._awaitingNewResponse = false;
         }
     }
 
@@ -458,6 +459,7 @@ export class ShadowBotApp extends LitElement {
                         .onSendText=${message => this.handleSendText(message)}
                         .shouldAnimateResponse=${this.shouldAnimateResponse}
                         @response-index-changed=${this.handleResponseIndexChanged}
+                        @status-update=${(e) => this.setStatus(e.detail.status)}
                         @response-animation-complete=${() => {
                             this.shouldAnimateResponse = false;
                             this._currentResponseIsComplete = true;

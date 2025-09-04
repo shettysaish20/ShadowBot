@@ -111,16 +111,85 @@ export async function configure(opts = {}) {
     _notify();
 }
 
+// -------------------- Image Upload --------------------
+
+export async function uploadImages(images) {
+    if (!images || images.length === 0) {
+        _debug('No images to upload');
+        return [];
+    }
+    
+    _debug('Uploading images', { count: images.length });
+    const formData = new FormData();
+    
+    for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        let blob;
+        
+        if (image instanceof Blob) {
+            blob = image;
+        } else if (typeof image === 'string') {
+            // Assume base64 data
+            const base64Data = image.includes(',') ? image.split(',')[1] : image;
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let j = 0; j < binaryString.length; j++) {
+                bytes[j] = binaryString.charCodeAt(j);
+            }
+            blob = new Blob([bytes], { type: 'image/jpeg' });
+        } else {
+            throw new Error(`Unsupported image format at index ${i}`);
+        }
+        
+        const filename = `screenshot_${Date.now()}_${i}.jpg`;
+        formData.append('files', blob, filename);
+        _debug('Added image to upload', { filename, size: blob.size });
+    }
+    
+    const url = `${_state.baseUrl}/upload`;
+    _debug('Uploading to', url);
+    
+    const r = await fetch(url, {
+        method: 'POST',
+        body: formData
+    });
+    
+    if (!r.ok) {
+        const errorText = await r.text();
+        throw new Error(`Upload failed: ${r.status} - ${errorText}`);
+    }
+    
+    const data = await r.json();
+    _debug('Upload successful', data);
+    return data.saved_files || [];
+}
+
 // -------------------- Job Submission --------------------
 
-export async function runJob(query, files = [], profile = null) {
+export async function runJob(query, files = [], profile = null, images = []) {
     if (!query || !query.trim()) throw new Error('Empty query');
     // Prevent concurrent job for same session
     if (_state.job && _state.job.state === 'running') {
         throw new Error('Job already running');
     }
+    
+    // Upload images to backend if provided
+    let imageFiles = [];
+    if (images && images.length > 0) {
+        try {
+            imageFiles = await uploadImages(images);
+            _debug('Images uploaded', { count: imageFiles.length, paths: imageFiles });
+        } catch (e) {
+            _debug('Image upload failed', e);
+            throw new Error(`Image upload failed: ${e.message}`);
+        }
+    }
+    
+    // Combine regular files with uploaded image files
+    const allFiles = [...files, ...imageFiles];
+    
     // Use existing session or null -> server generates
-    const payload = { query, files };
+    const payload = { query, files: allFiles };
     if (_state.sessionId) payload.session_id = _state.sessionId;
     if (profile) payload.profile = profile; // new profile parameter
     const url = `${_state.baseUrl}/run`;
