@@ -300,6 +300,7 @@ export class AssistantView extends LitElement {
         onSendText: { type: Function },
         shouldAnimateResponse: { type: Boolean },
         savedResponses: { type: Array },
+        lastQuery: { type: String }, // <-- Add this line
     };
 
     constructor() {
@@ -322,6 +323,7 @@ export class AssistantView extends LitElement {
         // Image capture functionality
         this._currentImages = [];
         this._isCapturingImages = false;
+        this.lastQuery = '';
     }
 
     getProfileNames() {
@@ -543,6 +545,7 @@ export class AssistantView extends LitElement {
         if (textInput && textInput.value.trim()) {
             const message = textInput.value.trim();
             textInput.value = '';
+            this.lastQuery = message; // <-- Store the query
             
             try {
                 // Capture current screenshot if available
@@ -670,11 +673,20 @@ export class AssistantView extends LitElement {
                 ${snapshot.job && snapshot.job.state === 'running' ? html`<span>Running job ...</span>` : ''}
             </div>
             <div class="response-container" id="responseContainer">
-                ${running ? html`<div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">Running job... ${job.completed_steps || 0}/${job.total_steps || 0} (${Math.round((job.progress_ratio || 0) * 100)}%)</div>` : ''}
+                ${running ? html`
+                    <div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">
+                        Running job... ${job.completed_steps || 0}/${job.total_steps || 0} (${Math.round((job.progress_ratio || 0) * 100)}%)
+                    </div>
+                    ${this.lastQuery ? html`
+                        <div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">
+                            Processing your query "<strong>${this.lastQuery}</strong>"...
+                        </div>
+                    ` : ''}
+                ` : ''}
                 ${job.state && !running ? html`<div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">Job state: ${job.state}</div>` : ''}
-                                                ${report ? html`<div class="final-report"><h4>Final Report</h4>
-                                                    <div id="finalReportSnippet" style="font-size:12px;line-height:1.4;white-space:normal;"></div>
-                                                </div>`: ''}
+                ${report ? html`<div class="final-report"><h4>Final Report</h4>
+                    <div id="finalReportSnippet" style="font-size:12px;line-height:1.4;white-space:normal;"></div>
+                </div>`: ''}
                 <!-- Response rendering temporarily disabled to avoid DOM conflicts -->
             </div>
             <div class="text-input-container">

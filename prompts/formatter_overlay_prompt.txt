@@ -9,6 +9,8 @@ You are the OVERLAYFORMATTERAGENT. Your job is to generate a brief but insight�
 
 DO NOT hallucinate. Only use data actually present in inputs or `all_globals_schema`.
 
+IMPORTANT: You must generate the report in first person, so that a person can just read this out. 
+
 ---
 INPUT KEYS (subset / same shape as full formatter):
 - agent_prompt: High-level formatting goal.
@@ -31,6 +33,7 @@ Produce a SINGLE HTML string (no line breaks) containing 6–7 compact sections:
   - If multiple languages possible, pick the one most implied by context; if ambiguous, omit the section.
   - If code is unsafe / environment-limited (network / filesystem heavy), provide a safe stub and brief note.
 3. Key Insights (3–5 bullet points)
+4. Details (2-3 line explanation of each of the key concepts or topics covered)
 4. Data Highlights (small table OR inline key:value spans; prefer real figures)
 5. Risks & Uncertainties (2–3 concise bullets— flag ambiguity, missing data, conflicts)
 6. Strategic Recommendations (3 prioritized actions)
