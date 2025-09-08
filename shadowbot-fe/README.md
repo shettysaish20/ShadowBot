@@ -44,3 +44,50 @@ A real-time AI assistant that provides contextual help during video calls, inter
 - Gemini API key
 - Screen recording permissions
 - Microphone/audio permissions
+
+## How You Can Build Installers
+
+# Install deps
+npm install
+
+# Start app locally for dev
+npm start
+
+# Create packaged app for your OS
+npm run package
+
+# Create installer (exe/dmg/appimage)
+npm run make
+
+
+## Bypass SmartScreen/Gatekeeper
+
+🚀 **How to Run Shadow Bot After Download**
+
+🪟 **On Windows (SmartScreen Warning)**
+
+- Double-click the downloaded .exe installer.
+
+- If you see “Windows protected your PC”:
+
+- Click More info.
+
+- Click Run anyway.
+
+- The installer will start normally.
+
+🍏 **On macOS (Gatekeeper Warning)**
+
+- Download the .dmg and drag Shadow Bot into Applications.
+
+- The first time you try to open it, macOS may say: “Shadow Bot cannot be opened because it is from an unidentified developer.”
+
+- To bypass: Open System Settings → Privacy & Security.
+
+- Scroll down, you’ll see a message about Shadow Bot.
+
+- Click Open Anyway.
+
+- Confirm again when prompted.
+
+- From then on, you can launch it like any other app.

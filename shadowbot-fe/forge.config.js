@@ -6,7 +6,7 @@ module.exports = {
         asar: true,
         extraResource: ['./src/assets/SystemAudioDump'],
         name: 'Shadow Bot',
-        icon: 'src/assets/logo',
+        icon: 'src/assets/ShadowBot_logo',
         // use `security find-identity -v -p codesigning` to find your identity
         // for macos signing
         // also fuck apple
@@ -43,27 +43,13 @@ module.exports = {
             platforms: ['darwin'],
             config: {
                 name: 'Shadow Bot',
-                icon: 'src/assets/logo.icns'
+                icon: 'src/assets/ShadowBot_logo.icns'
             }
         },
         {
             name: '@electron-forge/maker-zip',
             platforms: ['darwin', 'win32'],
-        },
-        {
-            name: '@electron-forge/maker-appimage',
-            platforms: ['linux'],
-            config: {
-                options: {
-                    name: 'Shadow Bot',
-                    productName: 'Shadow Bot',
-                    genericName: 'AI Assistant',
-                    description: 'AI assistant for interviews and learning',
-                    categories: ['Development', 'Education'],
-                    icon: 'src/assets/logo.png'
-                }
-            },
-        },
+        }
     ],
     plugins: [
         {
