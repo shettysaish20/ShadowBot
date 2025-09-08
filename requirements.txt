@@ -1,4 +1,4 @@
-mcp[cli]>=1.7.0
+mcp[cli]>=1.6.0
 pyyaml
 rapidfuzz>=3.13.0
 requests>=2.32.3
