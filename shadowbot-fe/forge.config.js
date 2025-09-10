@@ -1,11 +1,13 @@
+// Key issue faced for Windows: Electron fuses loading issue (fixed)
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+const path = require('path');
 
 module.exports = {
     packagerConfig: {
         asar: true,
-        extraResource: ['./src/assets/SystemAudioDump'],
-        name: 'Shadow Bot',
+        extraResource: [path.join(__dirname, 'src/assets/SystemAudioDump')],
+        executableName: 'ShadowBot',
         icon: 'src/assets/ShadowBot_logo',
         // use `security find-identity -v -p codesigning` to find your identity
         // for macos signing
@@ -23,26 +25,30 @@ module.exports = {
         //    appleId: 'your apple id',
         //    appleIdPassword: 'app specific password',
         //    teamId: 'your team id',
-        // },
+        // }, // .ico for win, .icns for mac
     },
     rebuildConfig: {},
     makers: [
         {
             name: '@electron-forge/maker-squirrel',
-            platforms: ['win32'],
             config: {
-                name: 'shadow-bot',
-                productName: 'Shadow Bot',
-                shortcutName: 'Shadow Bot',
+                name: 'shadowbot-fe',           // no spaces
+                productName: 'ShadowBot',
+                authors: 'Shadow AI, an incorporate of The School of AI EAG-V1',
+                description: 'Shadow Bot - AI assistant for interviews and learning',
+                setupExe: 'ShadowBotSetup.exe',
+                exe: 'ShadowBot.exe',
+                shortcutName: 'ShadowBot',
+                setupIcon: 'src/assets/ShadowBot_logo.ico',
                 createDesktopShortcut: true,
-                createStartMenuShortcut: true,
-            },
+                createStartMenuShortcut: true
+            }
         },
         {
             name: '@electron-forge/maker-dmg',
             platforms: ['darwin'],
             config: {
-                name: 'Shadow Bot',
+                name: 'ShadowBot',
                 icon: 'src/assets/ShadowBot_logo.icns'
             }
         },
@@ -64,7 +70,7 @@ module.exports = {
             [FuseV1Options.EnableCookieEncryption]: true,
             [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
             [FuseV1Options.EnableNodeCliInspectArguments]: false,
-            [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+            [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: false, // Turned False for Windows application creation
             [FuseV1Options.OnlyLoadAppFromAsar]: true,
         }),
     ],

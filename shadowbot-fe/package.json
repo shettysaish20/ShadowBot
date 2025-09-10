@@ -1,8 +1,9 @@
 {
   "name": "shadowbot-fe",
-  "productName": "Shadow Bot",
+  "productName": "ShadowBot",
   "version": "0.1.0",
   "description": "Shadow Bot - AI assistant for interviews and learning",
+  "author": "Shadow AI, an incorporate of The School of AI EAG-V1",
   "private": true,
   "main": "src/index.js",
   "license": "MIT",
