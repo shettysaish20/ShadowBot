@@ -92,22 +92,48 @@ function _logEvent(ev) {
 async function ensureBackendStarted() {
     const healthUrl = `${_state.baseUrl}/health`;
     try {
+        _debug('Checking backend health', healthUrl);
         const r = await fetch(healthUrl);
         if (r.ok) {
             const data = await r.json();
-            if (data.started) return data;
+            if (data.started) {
+                _debug('Backend server is already running');
+                return data;
+            }
         }
-    } catch (_) { /* swallow */ }
+        _debug('Backend health check failed or server not started');
+    } catch (e) {
+        _debug('Backend health check failed with error', e.message);
+    }
+    
     // Try start
-    const startUrl = `${_state.baseUrl}/start`;
-    const sr = await fetch(startUrl, { method: 'POST' });
-    if (!sr.ok) throw new Error('Failed to start backend');
-    return sr.json();
+    try {
+        const startUrl = `${_state.baseUrl}/start`;
+        _debug('Attempting to start backend server', startUrl);
+        const sr = await fetch(startUrl, { method: 'POST' });
+        if (!sr.ok) {
+            throw new Error(`Start request failed with status: ${sr.status}`);
+        }
+        _debug('Backend server started successfully');
+        return sr.json();
+    } catch (e) {
+        _debug('Failed to start backend server', e.message);
+        throw new Error(`Failed to start backend server: ${e.message}`);
+    }
 }
 
 export async function configure(opts = {}) {
     if (opts.baseUrl) _state.baseUrl = opts.baseUrl.replace(/\/$/, '');
-    await ensureBackendStarted();
+    
+    // Try to start backend but don't fail if it's not available during initial configure
+    try {
+        await ensureBackendStarted();
+        _debug('Backend server started during configuration');
+    } catch (e) {
+        _debug('Backend server not available during configuration, will retry when needed', e);
+        // Don't throw error - let it fail gracefully and retry later when actually needed
+    }
+    
     _notify();
 }
 
@@ -173,6 +199,17 @@ export async function runJob(query, files = [], profile = null, images = []) {
         throw new Error('Job already running');
     }
     
+    // Only ensure backend is started if we have images/screenshots to upload
+    if (images && images.length > 0) {
+        try {
+            await ensureBackendStarted();
+            _debug('Backend server is ready for screenshot query');
+        } catch (e) {
+            _debug('Failed to start backend server for screenshot query', e);
+            throw new Error(`Backend server not available for screenshot query: ${e.message}`);
+        }
+    }
+    
     // Upload images to backend if provided
     let imageFiles = [];
     if (images && images.length > 0) {
@@ -227,6 +264,32 @@ export async function cancelJob() {
         _state.errors.push({ type: 'cancel.error', message: String(e) });
     }
     return false;
+}
+
+export async function retryLastJob() {
+    if (!_state.job || _state.job.state !== 'failed') {
+        _debug('No failed job to retry');
+        return false;
+    }
+    
+    try {
+        _debug('Retrying last failed job');
+        
+        // Reset job state for retry
+        _state.job.state = 'retrying';
+        _state.errors = [];
+        _state.lastError = null;
+        _notify();
+        
+        // Restart the WebSocket connection to trigger retry
+        _closeWebSocket();
+        _connectWebSocket();
+        
+        return true;
+    } catch (e) {
+        _debug('retryLastJob error', e);
+        return false;
+    }
 }
 
 // -------------------- WebSocket Handling --------------------
@@ -321,6 +384,18 @@ function _handleEvent(ev) {
             _state.errors.push({ type: 'job.error', ...ev.payload });
             if (_state.job) _state.job.state = ev.payload.state || 'failed';
             _debug('event:job.error', ev.payload);
+            
+            // Display user-friendly error message with specific handling for awaiting_execution
+            const errorMsg = ev.payload.error || ev.payload.message || ev.payload.state || 'Unknown error';
+            const jobId = ev.payload.job_id || _state.jobId || 'unknown';
+            
+            if (errorMsg === 'awaiting_execution') {
+                console.error(`❌ Job ${jobId} failed: Job timed out while waiting for execution. The backend executor may be overloaded or unavailable.`);
+                _state.lastError = 'Backend executor unavailable - job timed out in queue';
+            } else {
+                console.error(`❌ Job ${jobId} failed: ${errorMsg}`);
+                _state.lastError = errorMsg;
+            }
             break;
         case 'step.start':
             _debug('event:step.start', ev.payload);
@@ -410,41 +485,6 @@ export function getLastEvents(count = 50) {
 export function currentSessionId() { return _state.sessionId; }
 export function currentJobId() { return _state.jobId; }
 
-// -------------------- Session Reset --------------------
-// Explicitly abandon current session context so the next run creates a fresh session_id.
-// Also clears job/step/report state and closes any active websocket.
-export function resetSession(options = {}) {
-    const { preserveBaseUrl = true } = options;
-    if (_state.ws) {
-        try { _state.closedManually = true; _state.ws.close(); } catch (_) { }
-    }
-    const baseUrl = _state.baseUrl;
-    Object.assign(_state, {
-        sessionId: null,
-        jobId: null,
-        ws: null,
-        wsUrl: null,
-        connected: false,
-        connecting: false,
-        lastSeq: null,
-        lastHeartbeatAt: 0,
-        reconnectAttempts: 0,
-        closedManually: false,
-        job: null,
-        steps: {},
-        report: null,
-        errors: [],
-        gap: null,
-        eventLog: [],
-        connectionStatus: 'idle',
-        lastEventAt: 0,
-        lastError: null,
-        nextReconnectDelayMs: 0,
-    });
-    if (preserveBaseUrl) _state.baseUrl = baseUrl; // restore baseUrl if needed
-    _notify();
-}
-
 // Attach to window for debugging (optional)
 if (typeof window !== 'undefined') {
     window.shadowAgent = {
@@ -457,6 +497,5 @@ if (typeof window !== 'undefined') {
         forceDisconnect,
         setDebug,
         forceReconnect,
-        resetSession,
     };
 }
