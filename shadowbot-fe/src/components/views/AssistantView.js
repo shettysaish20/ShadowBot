@@ -780,7 +780,6 @@ export class AssistantView extends LitElement {
             </div>
             <div style="padding:4px 8px;font-size:12px;color:var(--description-color);display:flex;gap:12px;align-items:center;">
                 <span>Profile: <strong>${currentJobProfile}</strong></span>
-                ${snapshot.job && snapshot.job.state === 'running' ? html`<span>Running job ...</span>` : ''}
                 <button 
                     class="screenshot-button ${this._hasStoredScreenshot ? 'active' : ''}"
                     @click=${this.handleScreenshotButtonClick}
@@ -796,38 +795,19 @@ export class AssistantView extends LitElement {
             </div>
             <div class="response-container" id="responseContainer">
                 ${running ? html`
-                    <div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">
-                        Running job... ${job.completed_steps || 0}/${job.total_steps || 0} (${Math.round((job.progress_ratio || 0) * 100)}%)
-                    </div>
                     ${this.lastQuery ? html`
                         <div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">
                             Processing your query "<strong>${this.lastQuery}</strong>"...
                         </div>
                     ` : ''}
+                    <div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">
+                        Running job... ${job.completed_steps || 0}/${job.total_steps || 0} (${Math.round((job.progress_ratio || 0) * 100)}%)
+                    </div>
                 ` : ''}
                 ${job.state && !running ? html`<div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">Job state: ${job.state}</div>` : ''}
                 ${report ? html`<div class="final-report"><h4>Final Report</h4>
                     <div id="finalReportSnippet" style="font-size:12px;line-height:1.4;white-space:normal;"></div>
                 </div>`: ''}
-                ${running ? html`<div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">Running job... ${job.completed_steps || 0}/${job.total_steps || 0} (${Math.round((job.progress_ratio || 0) * 100)}%)</div>` : ''}
-                ${job.state && !running ? html`<div style="font-size:12px;color:${job.state === 'failed' ? '#e74c3c' : 'var(--description-color)'};margin-bottom:8px;display:flex;align-items:center;gap:8px;">
-                    <span>
-                        ${job.state === 'failed' ? '❌ Job failed' : `Job state: ${job.state}`}
-                        ${this._agentState.lastError ?
-                            html` - ${this._agentState.lastError}` :
-                            this._agentState.errors && this._agentState.errors.length > 0 ?
-                                html` - ${this._agentState.errors[this._agentState.errors.length - 1].error || this._agentState.errors[this._agentState.errors.length - 1].message || 'Unknown error'}` : ''}
-                    </span>
-                    ${job.state === 'failed' ? html`
-                        <button 
-                            style="background:#007aff;color:white;border:none;padding:2px 6px;border-radius:4px;font-size:10px;cursor:pointer;"
-                            @click=${this.handleRetryJob}
-                            title="Retry failed job"
-                        >
-                            Retry
-                        </button>
-                    ` : ''}
-                </div>` : ''}
                 ${report ? html`<div class="final-report"><h4>Final Report</h4>
                     <div id="finalReportSnippet" style="font-size:12px;line-height:1.4;white-space:normal;"></div>
                 </div>`: ''}
