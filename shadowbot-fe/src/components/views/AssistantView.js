@@ -792,6 +792,7 @@ export class AssistantView extends LitElement {
                     </svg>
                     ${this._hasStoredScreenshot ? 'Ready' : 'Take Screenshot'}
                 </button>
+                ${snapshot.sessionId ? html`<span style="opacity:0.8;">Session: ${snapshot.sessionId}</span>`: ''}
             </div>
             <div class="response-container" id="responseContainer">
                 ${running ? html`

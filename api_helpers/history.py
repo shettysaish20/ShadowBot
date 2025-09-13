@@ -40,30 +40,35 @@ def _scan_sessions(limit: int) -> List[Dict[str, Any]]:
             raw = json.loads(p.read_text(encoding='utf-8'))
         except Exception:
             continue
-        started_at = raw.get('created_at') or raw.get('start_time') or _safe_int(raw.get('timestamp'))
-        finished_at = raw.get('finished_at') or raw.get('end_time')
-        convo = raw.get('conversationHistory') or raw.get('conversation_history') or []
-        first_user = ''
-        for turn in convo:
-            user_txt = turn.get('transcription') or turn.get('user') or turn.get('user_text')
-            if user_txt:
-                first_user = user_txt.strip()[:160]
-                break
-        ai_preview = ''
-        for turn in convo:
-            ai_txt = turn.get('ai_response') or turn.get('assistant') or turn.get('ai')
-            if ai_txt:
-                ai_preview = ai_txt.strip()[:160]
-                break
+        graph = raw.get("graph",{})
+        if not graph: continue
+        started_at = graph.get("created_at")
+        original_query = graph.get("original_query")
+        
+        # started_at = raw.get('created_at') or raw.get('start_time') or _safe_int(raw.get('timestamp'))
+        # finished_at = raw.get('finished_at') or raw.get('end_time')
+        # convo = raw.get('conversationHistory') or raw.get('conversation_history') or []
+        # first_user = ''
+        # for turn in convo:
+        #     user_txt = turn.get('transcription') or turn.get('user') or turn.get('user_text')
+        #     if user_txt:
+        #         first_user = user_txt.strip()[:160]
+        #         break
+        # ai_preview = ''
+        # for turn in convo:
+        #     ai_txt = turn.get('ai_response') or turn.get('assistant') or turn.get('ai')
+        #     if ai_txt:
+        #         ai_preview = ai_txt.strip()[:160]
+        #         break
         report_file = MEMORY_DIR / f'{REPORT_PREFIX}{session_id}{REPORT_SUFFIX}'
         report_available = report_file.exists()
         results.append({
             'session_id': session_id,
             'started_at': started_at,
-            'finished_at': finished_at,
-            'user_preview': first_user,
-            'ai_preview': ai_preview,
-            'turns': len(convo),
+            'original_query': original_query,
+            # 'user_preview': first_user,
+            # 'ai_preview': ai_preview,
+            # 'turns': len(convo),
             'report_available': report_available,
             'size_bytes': p.stat().st_size
         })

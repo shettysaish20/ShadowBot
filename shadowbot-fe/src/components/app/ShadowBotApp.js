@@ -157,6 +157,18 @@ export class ShadowBotApp extends LitElement {
                 this._isClickThrough = isEnabled;
             });
         }
+
+        // Listen for HistoryView navigation after rehydrate
+        this.addEventListener('navigate-to-assistant', async () => {
+            try {
+                // Ensure Gemini is initialized if not already in assistant view
+                if (this.currentView !== 'assistant') {
+                    await cheddar.initializeGemini(this.selectedProfile, this.selectedLanguage);
+                }
+            } catch (_) { /* ignore init errors here; assistant view can handle */ }
+            this.currentView = 'assistant';
+            this.requestUpdate();
+        });
     }
 
     disconnectedCallback() {
