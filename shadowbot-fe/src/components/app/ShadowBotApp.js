@@ -165,6 +165,16 @@ export class ShadowBotApp extends LitElement {
                 if (this.currentView !== 'assistant') {
                     await cheddar.initializeGemini(this.selectedProfile, this.selectedLanguage);
                 }
+                // Ensure screenshot capture is active so AssistantView can take screenshots
+                try {
+                    const interval = this.selectedScreenshotInterval || localStorage.getItem('selectedScreenshotInterval') || '5';
+                    const quality = this.selectedImageQuality || localStorage.getItem('selectedImageQuality') || 'medium';
+                    if (cheddar && typeof cheddar.startCapture === 'function') {
+                        cheddar.startCapture(interval, quality);
+                    }
+                } catch (e) {
+                    console.warn('startCapture after rehydrate failed (non-fatal):', e);
+                }
             } catch (_) { /* ignore init errors here; assistant view can handle */ }
             this.currentView = 'assistant';
             this.requestUpdate();
