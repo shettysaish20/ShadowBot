@@ -192,6 +192,7 @@ export async function runJob(query, files = [], profile = null, images = []) {
     const payload = { query, files: allFiles };
     if (_state.sessionId) payload.session_id = _state.sessionId;
     if (profile) payload.profile = profile; // new profile parameter
+    payload.api_key = localStorage.getItem('apiKey')?.trim(); // Add API key
     const url = `${_state.baseUrl}/run`;
     const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!r.ok) throw new Error(`Run failed: ${r.status}`);

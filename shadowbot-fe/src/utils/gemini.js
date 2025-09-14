@@ -717,7 +717,8 @@ function setupGeminiIpcHandlers(geminiSessionRef) {
             // Only send session_id if we have a valid one from a previous backend response
             const payload = {
                 query: text.trim(),
-                files: []
+                files: [],
+                api_key: localStorage.getItem('apiKey')?.trim() // Add API key
             };
 
             // Only include session_id if it came from the backend (not frontend-generated)
