@@ -860,7 +860,6 @@ dependencies = [
     { name = "numpy" },
     { name = "packaging" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e7/9a/e33fc563f007924dd4ec3c5101fe5320298d6c13c158a24a9ed849058569/faiss_cpu-1.11.0.tar.gz", hash = "sha256:44877b896a2b30a61e35ea4970d008e8822545cb340eca4eff223ac7f40a1db9", size = 70218, upload_time = "2025-04-28T07:48:30.459Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ed/83/8aefc4d07624a868e046cc23ede8a59bebda57f09f72aee2150ef0855a82/faiss_cpu-1.11.0-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:a90d1c81d0ecf2157e1d2576c482d734d10760652a5b2fcfa269916611e41f1c", size = 3307997, upload_time = "2025-04-28T07:47:41.905Z" },
     { url = "https://files.pythonhosted.org/packages/2b/64/f97e91d89dc6327e08f619fe387d7d9945bc4be3b0f1ca1e494a41c92ebe/faiss_cpu-1.11.0-cp311-cp311-macosx_14_0_x86_64.whl", hash = "sha256:2c39a388b059fb82cd97fbaa7310c3580ced63bf285be531453bfffbe89ea3dd", size = 7886308, upload_time = "2025-04-28T07:47:44.677Z" },
@@ -2951,6 +2950,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pytesseract"
+version = "0.3.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9f/a6/7d679b83c285974a7cb94d739b461fa7e7a9b17a3abfd7bf6cbc5c2394b0/pytesseract-0.3.13.tar.gz", hash = "sha256:4bf5f880c99406f52a3cfc2633e42d9dc67615e69d8a509d74867d3baddb5db9", size = 17689, upload_time = "2024-08-16T02:33:56.762Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7a/33/8312d7ce74670c9d39a532b2c246a853861120486be9443eebf048043637/pytesseract-0.3.13-py3-none-any.whl", hash = "sha256:7a99c6c2ac598360693d83a416e36e0b33a67638bb9d77fdcac094a3589d4b34", size = 14705, upload_time = "2024-08-16T02:36:10.09Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -3237,6 +3249,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyflakes" },
     { name = "pymupdf4llm" },
+    { name = "pytesseract" },
     { name = "pyyaml" },
     { name = "rapidfuzz" },
     { name = "readability-lxml" },
@@ -3280,6 +3293,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.3" },
     { name = "pyflakes", specifier = ">=3.4.0" },
     { name = "pymupdf4llm", specifier = ">=0.0.21" },
+    { name = "pytesseract", specifier = ">=0.3.13" },
     { name = "pyyaml" },
     { name = "rapidfuzz", specifier = ">=3.13.0" },
     { name = "readability-lxml", specifier = ">=0.8.4.1" },

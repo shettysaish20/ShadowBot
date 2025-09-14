@@ -34,6 +34,7 @@ class ModelManager:
 
         # Initialize client based on model type
         if self.model_type == "gemini":
+            # TODO: This API key should come from frontend
             # Use provided api_key or fall back to environment variable
             if api_key:
                 self.api_key = api_key

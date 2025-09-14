@@ -102,6 +102,7 @@ export class ShadowBotApp extends LitElement {
         startTime: { type: Number },
         isRecording: { type: Boolean },
         sessionActive: { type: Boolean },
+        lastSessionId: { type: String },
         selectedProfile: { type: String },
         selectedLanguage: { type: String },
         responses: { type: Array },
@@ -123,6 +124,7 @@ export class ShadowBotApp extends LitElement {
         this.startTime = null;
         this.isRecording = false;
         this.sessionActive = false;
+        this.lastSessionId = null;
         this.selectedProfile = localStorage.getItem('selectedProfile') || 'interview';
         this.selectedLanguage = localStorage.getItem('selectedLanguage') || 'en-US';
         this.selectedScreenshotInterval = localStorage.getItem('selectedScreenshotInterval') || '5';
@@ -157,6 +159,28 @@ export class ShadowBotApp extends LitElement {
                 this._isClickThrough = isEnabled;
             });
         }
+
+        // Listen for HistoryView navigation after rehydrate
+        this.addEventListener('navigate-to-assistant', async () => {
+            try {
+                // Ensure Gemini is initialized if not already in assistant view
+                if (this.currentView !== 'assistant') {
+                    await cheddar.initializeGemini(this.selectedProfile, this.selectedLanguage);
+                }
+                // Ensure screenshot capture is active so AssistantView can take screenshots
+                try {
+                    const interval = this.selectedScreenshotInterval || localStorage.getItem('selectedScreenshotInterval') || '5';
+                    const quality = this.selectedImageQuality || localStorage.getItem('selectedImageQuality') || 'medium';
+                    if (cheddar && typeof cheddar.startCapture === 'function') {
+                        cheddar.startCapture(interval, quality);
+                    }
+                } catch (e) {
+                    console.warn('startCapture after rehydrate failed (non-fatal):', e);
+                }
+            } catch (_) { /* ignore init errors here; assistant view can handle */ }
+            this.currentView = 'assistant';
+            this.requestUpdate();
+        });
     }
 
     disconnectedCallback() {
@@ -171,7 +195,7 @@ export class ShadowBotApp extends LitElement {
 
     setStatus(text) {
         this.statusText = text;
-        
+
         // Mark response as complete when we get certain status messages
         if (text.includes('Ready') || text.includes('Listening') || text.includes('Error')) {
             this._currentResponseIsComplete = true;
@@ -249,6 +273,12 @@ export class ShadowBotApp extends LitElement {
                 const av = this.shadowRoot.querySelector('assistant-view');
                 if (av && av.resetConversationSession) av.resetConversationSession();
             } catch (e) { console.warn('reset on close failed', e); }
+            // Keep track of the last known session id for Continue Previous
+            try {
+                if (window.shadowAgent && window.shadowAgent.currentSessionId) {
+                    this.lastSessionId = window.shadowAgent.currentSessionId();
+                }
+            } catch (_) { /* ignore */ }
             this.sessionActive = false;
             this.currentView = 'main';
             console.log('Session closed');
@@ -290,6 +320,42 @@ export class ShadowBotApp extends LitElement {
 
         await cheddar.initializeGemini(this.selectedProfile, this.selectedLanguage);
         // Pass the screenshot interval as string (including 'manual' option)
+        cheddar.startCapture(this.selectedScreenshotInterval, this.selectedImageQuality);
+        this.responses = [];
+        this.currentResponseIndex = -1;
+        this.startTime = Date.now();
+        this.currentView = 'assistant';
+    }
+
+    async handleContinuePrevious() {
+        // Continue with existing session id if available; otherwise behave like handleStart
+        const apiKey = localStorage.getItem('apiKey')?.trim();
+        if (!apiKey || apiKey === '') {
+            const mainView = this.shadowRoot.querySelector('main-view');
+            if (mainView && mainView.triggerApiKeyError) mainView.triggerApiKeyError();
+            return;
+        }
+        await cheddar.initializeGemini(this.selectedProfile, this.selectedLanguage);
+        cheddar.startCapture(this.selectedScreenshotInterval, this.selectedImageQuality);
+        this.currentView = 'assistant';
+    }
+
+    async handleStartNew() {
+        // Ensure API key exists
+        const apiKey = localStorage.getItem('apiKey')?.trim();
+        if (!apiKey || apiKey === '') {
+            const mainView = this.shadowRoot.querySelector('main-view');
+            if (mainView && mainView.triggerApiKeyError) mainView.triggerApiKeyError();
+            return;
+        }
+        // Reset any attached/rehydrated session on the frontend client before starting
+        try {
+            if (window.shadowAgent && window.shadowAgent.resetSession) {
+                window.shadowAgent.resetSession();
+            }
+        } catch (e) { console.warn('resetSession failed', e); }
+        this.lastSessionId = null;
+        await cheddar.initializeGemini(this.selectedProfile, this.selectedLanguage);
         cheddar.startCapture(this.selectedScreenshotInterval, this.selectedImageQuality);
         this.responses = [];
         this.currentResponseIndex = -1;
@@ -418,6 +484,9 @@ export class ShadowBotApp extends LitElement {
                 return html`
                     <main-view
                         .onStart=${() => this.handleStart()}
+                        .onContinue=${() => this.handleContinuePrevious()}
+                        .onStartNew=${() => this.handleStartNew()}
+                        .hasPreviousSession=${!!this.lastSessionId}
                         .onAPIKeyHelp=${() => this.handleAPIKeyHelp()}
                         .onLayoutModeChange=${layoutMode => this.handleLayoutModeChange(layoutMode)}
                     ></main-view>
@@ -461,11 +530,11 @@ export class ShadowBotApp extends LitElement {
                         @response-index-changed=${this.handleResponseIndexChanged}
                         @status-update=${(e) => this.setStatus(e.detail.status)}
                         @response-animation-complete=${() => {
-                            this.shouldAnimateResponse = false;
-                            this._currentResponseIsComplete = true;
-                            console.log('[response-animation-complete] Marked current response as complete');
-                            this.requestUpdate();
-                        }}
+                        this.shouldAnimateResponse = false;
+                        this._currentResponseIsComplete = true;
+                        console.log('[response-animation-complete] Marked current response as complete');
+                        this.requestUpdate();
+                    }}
                     ></assistant-view>
                 `;
 
@@ -475,9 +544,8 @@ export class ShadowBotApp extends LitElement {
     }
 
     render() {
-        const mainContentClass = `main-content ${
-            this.currentView === 'assistant' ? 'assistant-view' : this.currentView === 'onboarding' ? 'onboarding-view' : 'with-border'
-        }`;
+        const mainContentClass = `main-content ${this.currentView === 'assistant' ? 'assistant-view' : this.currentView === 'onboarding' ? 'onboarding-view' : 'with-border'
+            }`;
 
         return html`
             <div class="window-container">

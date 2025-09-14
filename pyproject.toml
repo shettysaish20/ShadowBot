@@ -44,4 +44,5 @@ dependencies = [
     "cssutils>=2.11.1",
     "websocket-client>=1.8.0",
     "pyflakes>=3.4.0",
+    "pytesseract>=0.3.13",
 ]

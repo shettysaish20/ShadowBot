@@ -35,6 +35,7 @@ from agentLoop.flow import AgentLoop4
 from agentLoop.contextManager import ExecutionContextManager
 from utils.utils import log_error
 from api_helpers.history import list_history, load_session_summary, load_session_report_html
+from agentLoop.session_serializer import SessionSerializer
 
 API_VERSION = "v1"
 JOB_TIMEOUT_SECONDS = 120
@@ -910,6 +911,184 @@ def session_info(session_id: str):
         'node_count': len(nodes),
         'nodes': nodes,
         'summary': summary
+    })
+
+@app.post('/sessions/<session_id>/rehydrate')
+def rehydrate_session(session_id: str):
+    """Rehydrate a historic session from serialized JSON so it can be continued.
+
+    Returns minimal session metadata plus (if available) a sanitized report snippet.
+    If session already active in memory, returns existing summary with status 'already_loaded'.
+    """
+    if not STATE.started:
+        abort(400, description='System not started. Call /start first.')
+
+    # If already loaded, shortcut
+    existing = STATE.sessions.get(session_id)
+    if existing and isinstance(existing.get('context'), ExecutionContextManager):
+        ctx: ExecutionContextManager = existing['context']  # type: ignore[assignment]
+        summary = ctx.get_execution_summary()
+        html = load_session_report_html(session_id)
+        report_payload = None
+        if html:
+            snippet = _sanitize_html_snippet(html)
+            report_payload = {
+                'snippet': snippet,
+                'size': len(html),
+                'snippet_truncated': len(snippet) < len(html),
+                'sanitized': True
+            }
+        return jsonify({
+            'api_version': API_VERSION,
+            'session_id': session_id,
+            'status': 'already_loaded',
+            'original_query': ctx.plan_graph.graph.get('original_query'),
+            'queries': ctx.plan_graph.graph.get('queries', []),
+            'summary': summary,
+            **({'report': report_payload} if report_payload else {})
+        })
+
+    # Locate session file (mirror logic in history helper)
+    from pathlib import Path as _Path
+    from api_helpers.history import INDEX_DIR as _IDX
+    patterns = list(_IDX.glob(f'**/session_{session_id}.json'))
+    if not patterns:
+        abort(404, description='Session file not found')
+    session_file = patterns[0]
+    try:
+        plan_graph = SessionSerializer.load_session(session_file)  # returns nx.DiGraph
+    except Exception as e:
+        abort(500, description=f'Failed to load session: {e}')
+
+    # Build ExecutionContextManager via load_session (bypasses __init__)
+    try:
+        context = ExecutionContextManager.load_session(session_file)
+    except Exception as e:
+        abort(500, description=f'Failed to construct context: {e}')
+
+    # Attach multi_mcp reference for future tool usage
+    try:
+        context.set_multi_mcp(STATE.multi_mcp)
+    except Exception:
+        pass
+
+    # Normalise any 'running' nodes (persisted mid-run) -> 'pending'
+    try:
+        for nid, data in context.plan_graph.nodes(data=True):
+            if nid == 'ROOT':
+                continue
+            if data.get('status') == 'running':
+                data['status'] = 'pending'
+                data['start_time'] = None
+                data['end_time'] = None
+                data['execution_time'] = 0.0
+    except Exception:
+        pass
+
+    # Create new AgentLoop4 for this session with instrumentation
+    agent_loop = AgentLoop4(STATE.multi_mcp)
+
+    def _step_start(step_id, agent, reads, writes, turn):  # pragma: no cover simple callback
+        ws_send_event(session_id, 'step.start', {
+            'step_id': step_id,
+            'agent': agent,
+            'reads': reads,
+            'writes': writes,
+            'turn': turn
+        })
+
+    def _step_end(step_id, status, duration_ms, error, output_meta, progress):  # pragma: no cover simple callback
+        payload = {
+            'step_id': step_id,
+            'status': status,
+            'duration_ms': round(duration_ms, 2),
+            'error': error,
+            'output_meta': output_meta,
+        }
+        if isinstance(progress, dict):
+            payload['progress'] = {
+                'completed': progress.get('completed_steps'),
+                'failed': progress.get('failed_steps'),
+                'total': progress.get('total_steps'),
+                'ratio': round((progress.get('completed_steps',0)/ max(progress.get('total_steps',1),1)), 2)
+            }
+        ws_send_event(session_id, 'step.end', payload)
+        if status == 'failed':
+            ws_send_event(session_id, 'step.error', {
+                'step_id': step_id,
+                'error_kind': 'error',
+                'message': (str(error) or '')[:400]
+            })
+        if isinstance(progress, dict):
+            js_payload = {
+                'state': 'running',
+                'job_id': None,
+                'completed_steps': progress.get('completed_steps'),
+                'failed_steps': progress.get('failed_steps'),
+                'total_steps': progress.get('total_steps'),
+                'progress_ratio': round((progress.get('completed_steps',0)/ max(progress.get('total_steps',1),1)), 2)
+            }
+            ws_send_event(session_id, 'job.status', js_payload)
+
+    agent_loop.on_step_start = _step_start  # type: ignore[attr-defined]
+    agent_loop.on_step_end = _step_end      # type: ignore[attr-defined]
+
+    # Derive conversation turn count from existing queries list
+    existing_queries = context.plan_graph.graph.get('queries', []) or []
+    try:
+        agent_loop._conversation_turn = len(existing_queries)  # type: ignore[attr-defined]
+    except Exception:
+        pass
+
+    # Register in runtime state
+    STATE.sessions[session_id] = {
+        'agent_loop': agent_loop,
+        'context': context,
+        'created_at': time.time(),
+        'session_id': session_id,
+        'rehydrated_at': time.time()
+    }
+
+    # Prepare response summary
+    summary = context.get_execution_summary()
+    html = load_session_report_html(session_id)
+    report_payload = None
+    if html:
+        snippet = _sanitize_html_snippet(html)
+        report_payload = {
+            'snippet': snippet,
+            'size': len(html),
+            'snippet_truncated': len(snippet) < len(html),
+            'sanitized': True
+        }
+
+    # Minimal node listing (similar to session_info)
+    nodes = []
+    try:
+        for n, d in context.plan_graph.nodes(data=True):
+            if n == 'ROOT':
+                continue
+            nodes.append({
+                'id': n,
+                'agent': d.get('agent'),
+                'status': d.get('status'),
+                'reads': d.get('reads', []),
+                'writes': d.get('writes', []),
+                'end_time': d.get('end_time')
+            })
+    except Exception:
+        pass
+
+    return jsonify({
+        'api_version': API_VERSION,
+        'session_id': session_id,
+        'status': 'rehydrated',
+        'original_query': context.plan_graph.graph.get('original_query'),
+        'queries': existing_queries,
+        'node_count': len(nodes),
+        'nodes': nodes,
+        'summary': summary,
+        **({'report': report_payload} if report_payload else {})
     })
 
 @app.post('/upload')

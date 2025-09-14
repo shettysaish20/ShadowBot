@@ -1,5 +1,13 @@
 import { html, css, LitElement } from '../../assets/lit-core-2.7.4.min.js';
-import { configure as agentConfigure, runJob as agentRunJob, cancelJob as agentCancelJob, subscribe as agentSubscribe, getSnapshot as agentGetSnapshot, resetSession as agentResetSession, uploadImages } from '../../utils/agentStream.js';
+import {
+    configure as agentConfigure,
+    runJob as agentRunJob,
+    cancelJob as agentCancelJob,
+    retryLastJob as agentRetryJob,
+    subscribe as agentSubscribe,
+    getSnapshot as agentGetSnapshot,
+    uploadImages
+} from '../../utils/agentStream.js';
 // Deprecated: no longer fetching full report via history endpoint; relying solely on WS report.final payload
 
 export class AssistantView extends LitElement {
@@ -291,6 +299,41 @@ export class AssistantView extends LitElement {
         .save-button svg {
             stroke: currentColor !important;
         }
+
+        .screenshot-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 500;
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .screenshot-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .screenshot-button.active {
+            background: #4caf50;
+            color: white;
+            border-color: #45a049;
+        }
+
+        .screenshot-button.active:hover {
+            background: #45a049;
+        }
+
+        .screenshot-button svg {
+            width: 12px;
+            height: 12px;
+            stroke: currentColor;
+        }
     `;
 
     static properties = {
@@ -300,6 +343,7 @@ export class AssistantView extends LitElement {
         onSendText: { type: Function },
         shouldAnimateResponse: { type: Boolean },
         savedResponses: { type: Array },
+        lastQuery: { type: String }, // <-- Add this line
     };
 
     constructor() {
@@ -317,11 +361,13 @@ export class AssistantView extends LitElement {
         }
         this._agentUnsub = null;
         this._agentState = { job: null, steps: {}, report: null, connected: false };
-    // Deprecated full-report fetch state removed
+        // Deprecated full-report fetch state removed
         this._lastSnippetApplied = null;
         // Image capture functionality
         this._currentImages = [];
         this._isCapturingImages = false;
+        this._hasStoredScreenshot = false;
+        this.lastQuery = '';
     }
 
     getProfileNames() {
@@ -520,22 +566,9 @@ export class AssistantView extends LitElement {
         }
 
         if (this._agentUnsub) { try { this._agentUnsub(); } catch (_) { } this._agentUnsub = null; }
-    }
 
-    // External API: allow parent components / app shell to force resetting the backend session
-    // Usage: document.querySelector('assistant-view').resetConversationSession();
-    resetConversationSession() {
-        try {
-            agentResetSession();
-            // Clear local UI artifacts
-            this.responses = [];
-            this.currentResponseIndex = -1;
-            this._agentState = { job: null, steps: {}, report: null, connected: false };
-            this._lastSnippetApplied = null;
-            this.requestUpdate();
-        } catch (e) {
-            console.warn('resetConversationSession failed', e);
-        }
+        // Ensure screenshot memory is released when component disconnects
+        this._releaseScreenshotMemory();
     }
 
     async handleSendText() {
@@ -543,29 +576,33 @@ export class AssistantView extends LitElement {
         if (textInput && textInput.value.trim()) {
             const message = textInput.value.trim();
             textInput.value = '';
+            this.lastQuery = message; // <-- Store the query
             
             try {
-                // Capture current screenshot if available
-                console.log('Capturing screenshot for message...');
-                const images = await this._captureCurrentScreenshot();
-                console.log('Screenshots captured:', images.length);
-                
+                // Use stored screenshot if available, otherwise send without image
+                const images = this._hasStoredScreenshot ? this._currentImages : [];
+                console.log('Sending message with', images.length, 'stored screenshots');
+
                 // Show status while processing
                 this.dispatchEvent(new CustomEvent('status-update', {
-                    detail: { status: images.length > 0 ? 'Sending message with screenshot...' : 'Sending message...' }
+                    detail: { status: images.length > 0 ? 'Ensuring backend is ready and sending message with screenshot...' : 'Sending message...' }
                 }));
-                
+
                 await agentRunJob(message, [], this.selectedProfile, images);
                 console.log('Message sent successfully with', images.length, 'images');
+
             } catch (e) {
                 console.error('runJob error', e);
                 this.dispatchEvent(new CustomEvent('status-update', {
                     detail: { status: 'Error: ' + e.message }
                 }));
+            } finally {
+                // Always release memory after sending (success or error)
+                this._releaseScreenshotMemory();
             }
         }
     }
-    
+
     async _captureCurrentScreenshot() {
         try {
             // Request screenshot from the renderer
@@ -588,6 +625,82 @@ export class AssistantView extends LitElement {
             return [];
         }
     }
+
+    async _storeScreenshotInMemory() {
+        try {
+            console.log('Storing screenshot in memory...');
+            const images = await this._captureCurrentScreenshot();
+
+            if (images.length > 0) {
+                this._currentImages = images;
+                this._hasStoredScreenshot = true;
+
+                this.dispatchEvent(new CustomEvent('status-update', {
+                    detail: { status: 'Screenshot captured and stored in memory - ready to send with query' }
+                }));
+
+                console.log('Screenshot stored in memory - SS button turned green');
+                this.requestUpdate();
+                return true;
+            } else {
+                this.dispatchEvent(new CustomEvent('status-update', {
+                    detail: { status: 'Failed to capture screenshot' }
+                }));
+                return false;
+            }
+        } catch (e) {
+            console.error('Screenshot capture error:', e);
+            this.dispatchEvent(new CustomEvent('status-update', {
+                detail: { status: 'Error capturing screenshot: ' + e.message }
+            }));
+            return false;
+        }
+    }
+
+    _releaseScreenshotMemory() {
+        this._currentImages = [];
+        this._hasStoredScreenshot = false;
+        console.log('Screenshot memory released - SS button reset');
+        this.requestUpdate();
+    }
+
+    async handleScreenshotButtonClick() {
+        if (this._hasStoredScreenshot) {
+            // Button is already active (green), don't capture again
+            console.log('SS button already active - screenshot already stored in memory');
+            this.dispatchEvent(new CustomEvent('status-update', {
+                detail: { status: 'Screenshot already stored in memory' }
+            }));
+            return;
+        }
+
+        console.log('SS button clicked - capturing screenshot');
+        await this._storeScreenshotInMemory();
+    }
+
+    async handleRetryJob() {
+        try {
+            console.log('Retrying failed job...');
+            this.dispatchEvent(new CustomEvent('status-update', {
+                detail: { status: 'Retrying failed job...' }
+            }));
+
+            const success = await agentRetryJob();
+            if (success) {
+                console.log('Job retry initiated');
+            } else {
+                this.dispatchEvent(new CustomEvent('status-update', {
+                    detail: { status: 'Failed to retry job - no failed job found' }
+                }));
+            }
+        } catch (e) {
+            console.error('Retry job error:', e);
+            this.dispatchEvent(new CustomEvent('status-update', {
+                detail: { status: 'Error retrying job: ' + e.message }
+            }));
+        }
+    }
+
 
     handleTextKeydown(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -704,22 +817,46 @@ export class AssistantView extends LitElement {
         const color = statusColors[status] || '#7f8c8d';
         return html`
             <div style="position:absolute;top:6px;right:8px;font-size:11px;display:flex;align-items:center;gap:6px;z-index:10;">
-            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid ${color};border-radius:12px;color:${color};background:rgba(255,255,255,0.05);">
-                <span style="width:8px;height:8px;border-ra dius:50%;background:${color};"></span>
-                WS ${status}${reconnectInfo}
-            </span>
-            ${status === 'error' || status === 'closed' ? html`<button style="background:transparent;border:1px solid ${color};color:${color};border-radius:10px;padding:2px 6px;font-size:10px;cursor:pointer;" @click=${() => window.shadowAgent && window.shadowAgent.forceReconnect()}>Retry</button>` : ''}
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid ${color};border-radius:12px;color:${color};background:rgba(255,255,255,0.05);">
+                    <span style="width:8px;height:8px;border-ra dius:50%;background:${color};"></span>
+                    WS ${status}${reconnectInfo}
+                </span>
+                ${status === 'error' || status === 'closed' ? html`<button style="background:transparent;border:1px solid ${color};color:${color};border-radius:10px;padding:2px 6px;font-size:10px;cursor:pointer;" @click=${() => window.shadowAgent && window.shadowAgent.forceReconnect()}>Retry</button>` : ''}
             </div>
             <div style="padding:4px 8px;font-size:12px;color:var(--description-color);display:flex;gap:12px;align-items:center;">
                 <span>Profile: <strong>${currentJobProfile}</strong></span>
-                ${snapshot.job && snapshot.job.state === 'running' ? html`<span>Running job ...</span>` : ''}
+                <button 
+                    class="screenshot-button ${this._hasStoredScreenshot ? 'active' : ''}"
+                    @click=${this.handleScreenshotButtonClick}
+                    title="${this._hasStoredScreenshot ? 'Screenshot stored in memory' : 'Click to capture screenshot'}"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6V5C4 4.44772 4.44772 4 5 4H8L9.5 2H14.5L16 4H19C19.5523 4 20 4.44772 20 5V6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 6H20V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    ${this._hasStoredScreenshot ? 'Ready' : 'Take Screenshot'}
+                </button>
+                ${snapshot.sessionId ? html`<span style="opacity:0.8;">Session: ${snapshot.sessionId}</span>`: ''}
             </div>
             <div class="response-container" id="responseContainer">
-                ${running ? html`<div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">Running job... ${job.completed_steps || 0}/${job.total_steps || 0} (${Math.round((job.progress_ratio || 0) * 100)}%)</div>` : ''}
+                ${running ? html`
+                    ${this.lastQuery ? html`
+                        <div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">
+                            Processing your query "<strong>${this.lastQuery}</strong>"...
+                        </div>
+                    ` : ''}
+                    <div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">
+                        Running job... ${job.completed_steps || 0}/${job.total_steps || 0} (${Math.round((job.progress_ratio || 0) * 100)}%)
+                    </div>
+                ` : ''}
                 ${job.state && !running ? html`<div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">Job state: ${job.state}</div>` : ''}
-                                                ${report ? html`<div class="final-report"><h4>Final Report</h4>
-                                                    <div id="finalReportSnippet" style="font-size:12px;line-height:1.4;white-space:normal;"></div>
-                                                </div>`: ''}
+                ${report ? html`<div class="final-report"><h4>Final Report</h4>
+                    <div id="finalReportSnippet" style="font-size:12px;line-height:1.4;white-space:normal;"></div>
+                </div>`: ''}
+                ${report ? html`<div class="final-report"><h4>Final Report</h4>
+                    <div id="finalReportSnippet" style="font-size:12px;line-height:1.4;white-space:normal;"></div>
+                </div>`: ''}
                 <!-- Response rendering temporarily disabled to avoid DOM conflicts -->
             </div>
             <div class="text-input-container">
@@ -764,7 +901,12 @@ export class AssistantView extends LitElement {
                     </svg>
                 </button>
 
-                <input type="text" id="textInput" placeholder="Type a message to the AI..." @keydown=${this.handleTextKeydown} />
+                <input 
+                    type="text" 
+                    id="textInput" 
+                    placeholder="${this._hasStoredScreenshot ? 'Type a message (screenshot will be included)...' : 'Type a message to the AI...'}" 
+                    @keydown=${this.handleTextKeydown} 
+                />
 
                 <button class="nav-button" @click=${this.navigateToNextResponse} ?disabled=${this.currentResponseIndex >= this.responses.length - 1}>
                     <?xml version="1.0" encoding="UTF-8"?><svg

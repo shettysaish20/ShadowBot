@@ -1,6 +1,7 @@
 import { html, css, LitElement } from '../../assets/lit-core-2.7.4.min.js';
 import { resizeLayout } from '../../utils/windowResize.js';
 import { listHistorySessions, getHistorySessionDetail, getHistoryReportHtml } from '../../utils/historyApi.js';
+import { rehydrateSession } from '../../utils/agentStream.js';
 
 export class HistoryView extends LitElement {
     static styles = css`
@@ -72,10 +73,9 @@ export class HistoryView extends LitElement {
             font-size: 11px;
             color: var(--description-color);
             line-height: 1.3;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
+            white-space: nowrap;
             overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .conversation-view {
@@ -316,6 +316,8 @@ export class HistoryView extends LitElement {
         remoteError: { type: String },
         remoteDetail: { type: Object },
         remoteReport: { type: String },
+        rehydrateStatus: { type: String },
+        rehydrateError: { type: String },
     };
 
     constructor() {
@@ -335,6 +337,8 @@ export class HistoryView extends LitElement {
         this.remoteError = null;
         this.remoteDetail = null;
         this.remoteReport = null;
+        this.rehydrateStatus = '';
+        this.rehydrateError = '';
         // remove eager loading of remote sessions; only load local immediately
         this.loadLocalSessions();
     }
@@ -445,6 +449,8 @@ export class HistoryView extends LitElement {
 
     handleBackClick() {
         this.selectedSession = null;
+        this.rehydrateStatus = '';
+        this.rehydrateError = '';
     }
 
     handleTabClick(tab) {
@@ -485,7 +491,7 @@ export class HistoryView extends LitElement {
         return html`
             <div class="sessions-list">
                 ${this.sessions.map(
-                    session => html`
+            session => html`
                         <div class="session-item" @click=${() => this.handleSessionClick(session)}>
                             <div class="session-header">
                                 <div class="session-date">${this.formatDate(session.timestamp)}</div>
@@ -494,7 +500,7 @@ export class HistoryView extends LitElement {
                             <div class="session-preview">${this.getSessionPreview(session)}</div>
                         </div>
                     `
-                )}
+        )}
             </div>
         `;
     }
@@ -514,7 +520,7 @@ export class HistoryView extends LitElement {
         return html`
             <div class="sessions-list">
                 ${this.savedResponses.map(
-                    (saved, index) => html`
+            (saved, index) => html`
                         <div class="saved-response-item">
                             <div class="saved-response-header">
                                 <div>
@@ -543,7 +549,7 @@ export class HistoryView extends LitElement {
                             <div class="saved-response-content">${saved.response}</div>
                         </div>
                     `
-                )}
+        )}
             </div>
         `;
     }
@@ -603,8 +609,8 @@ export class HistoryView extends LitElement {
             </div>
             <div class="conversation-view">
                 ${messages.length > 0
-                    ? messages.map(message => html` <div class="message ${message.type}">${message.content}</div> `)
-                    : html`<div class="empty-state">No conversation data available</div>`}
+                ? messages.map(message => html` <div class="message ${message.type}">${message.content}</div> `)
+                : html`<div class="empty-state">No conversation data available</div>`}
             </div>
         `;
     }
@@ -618,8 +624,32 @@ export class HistoryView extends LitElement {
                     <div>${isRemote ? 'Remote Session' : 'Local Session'}</div>
                 </div>
                 <div class="conversation-view">
-                    ${isRemote && this.remoteDetail ? html`<pre style="white-space:pre-wrap; font-size:11px;">${JSON.stringify(this.remoteDetail.detail, null, 2)}</pre>`: ''}
-                    ${isRemote && this.remoteReport ? html`<hr/><div><strong>Report Preview (raw HTML)</strong></div><div style="border:1px solid var(--button-border);padding:6px;max-height:300px;overflow:auto;font-size:11px;">${this.remoteReport.slice(0,4000)}</div>`:''}
+                    ${isRemote && this.remoteDetail ? html`
+                        <div style="font-size:12px;line-height:1.4;">
+                            <div><strong>Session ID:</strong> ${this.selectedSession.session_id}</div>
+                            <div><strong>Original Query:</strong> ${this.remoteDetail.detail.graph?.original_query || (this.remoteDetail.detail.graph?.queries && this.remoteDetail.detail.graph?.queries[0]?.query) || this.remoteDetail.detail.original_query || '(unknown)'} </div>
+                            <div><strong>Nodes:</strong> ${(this.remoteDetail.detail.graph?.nodes?.length) || (this.remoteDetail.detail.nodes?.length) || 'n/a'}</div>
+                            <div><strong>Status:</strong> ${this.remoteDetail.detail.graph?.graph?.status || this.remoteDetail.detail.status || 'completed'}</div>
+                            <div style="margin-top:8px;">
+                                <button class="back-button" style="padding:4px 10px;" @click=${async () => {
+                        this.rehydrateStatus = 'Rehydrating...';
+                        this.rehydrateError = '';
+                        try {
+                            await rehydrateSession(this.selectedSession.session_id);
+                            // Auto-navigate to Assistant view on success
+                            this.dispatchEvent(new CustomEvent('navigate-to-assistant', { bubbles: true, composed: true }));
+                        } catch (e) {
+                            this.rehydrateError = String(e.message || e);
+                            this.rehydrateStatus = '';
+                        }
+                        this.requestUpdate();
+                    }}>Continue Session</button>
+                                ${this.rehydrateStatus ? html`<span style="margin-left:8px;color:#2ecc71;">${this.rehydrateStatus}</span>` : ''}
+                                ${this.rehydrateError ? html`<span style="margin-left:8px;color:#e74c3c;">${this.rehydrateError}</span>` : ''}
+                            </div>
+                        </div>
+                    `: ''}
+                    ${isRemote && this.remoteReport ? html`<hr/><div><strong>Report Preview (raw HTML)</strong></div><div style="border:1px solid var(--button-border);padding:6px;max-height:300px;overflow:auto;font-size:11px;">${this.remoteReport.slice(0, 4000)}</div>` : ''}
                 </div>
             </div>`;
         }
@@ -628,18 +658,18 @@ export class HistoryView extends LitElement {
                 <button class="tab active">Sessions</button>
             </div>
             <div class="sessions-list">
-                ${this.remoteLoading ? html`<div class="loading">Loading remote...</div>`: ''}
-                ${this.remoteError ? html`<div class="loading" style="color:#ff6666;">${this.remoteError}</div>`: ''}
+                ${this.remoteLoading ? html`<div class="loading">Loading remote...</div>` : ''}
+                ${this.remoteError ? html`<div class="loading" style="color:#ff6666;">${this.remoteError}</div>` : ''}
                 ${this.remoteSessions.map(rs => html`<div class="session-item" @click=${() => this.handleSessionClick(rs)}>
                     <div class="session-header">
                         <div class="session-date">${rs.session_id}</div>
                         <div class="session-time">${rs.started_at ? new Date(rs.started_at).toLocaleString() : ''}</div>
                     </div>
-                    <div class="session-preview">${(rs.user_preview || rs.ai_preview || '').slice(0,120)}</div>
+                    <div class="session-preview" title=${rs.original_query || ''}>${rs.original_query || (rs.user_preview || rs.ai_preview || '')}</div>
                 </div>`)}
                 ${this.sessions.map(ls => html`<div class="session-item" @click=${() => this.handleSessionClick(ls)}>
                     <div class="session-header"><div class="session-date">Local</div><div class="session-time">${ls.id || ''}</div></div>
-                    <div class="session-preview">${(ls.conversationHistory && ls.conversationHistory[0] && (ls.conversationHistory[0].transcription||ls.conversationHistory[0].ai_response||'')).slice(0,120)}</div>
+                    <div class="session-preview" title=${ls.original_query || (ls.conversationHistory && ls.conversationHistory[0] && (ls.conversationHistory[0].transcription || ls.conversationHistory[0].ai_response || '')) || ''}>${ls.original_query || (ls.conversationHistory && ls.conversationHistory[0] && (ls.conversationHistory[0].transcription || ls.conversationHistory[0].ai_response || '')) || ''}</div>
                 </div>`)}
             </div>
         </div>`;
