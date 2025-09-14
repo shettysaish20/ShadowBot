@@ -12,8 +12,9 @@ from config.log_config import get_logger, logger_step, logger_json_block, logger
 logger = get_logger(__name__)
 
 class AgentRunner:
-    def __init__(self, multi_mcp):
+    def __init__(self, multi_mcp, api_key=None):
         self.multi_mcp = multi_mcp
+        self.api_key = api_key  # Store API key
         
         # Load agent configurations
         config_path = Path("config/agent_config.yaml")
@@ -195,7 +196,7 @@ class AgentRunner:
                 
                 # Initialize model manager for Files API uploads
                 ## TODO: Create this for different API key clients
-                model_manager = ModelManager(agent_config.get("model", "gemini-2.0-flash"))
+                model_manager = ModelManager(agent_config.get("model", "gemini-2.0-flash"), api_key=self.api_key)
                 
                 # Process files based on strategy
                 for file_path in all_files:
@@ -214,7 +215,7 @@ class AgentRunner:
             else:
                 # Initialize model manager for text-only requests
                 ## TODO: Create this for different API key clients
-                model_manager = ModelManager(agent_config.get("model", "gemini-2.0-flash"))
+                model_manager = ModelManager(agent_config.get("model", "gemini-2.0-flash"), api_key=self.api_key)
 
             # Load system prompt
             prompt_file_path = agent_config.get('prompt_file')

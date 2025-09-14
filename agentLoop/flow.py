@@ -77,10 +77,10 @@ def _json_safe(obj, _depth: int = 0, _max_depth: int = 6):
 
 
 class AgentLoop4:
-    def __init__(self, multi_mcp, strategy="conservative"):
+    def __init__(self, multi_mcp, strategy="conservative", api_key=None):
         self.multi_mcp = multi_mcp
         self.strategy = strategy
-        self.agent_runner = AgentRunner(multi_mcp)
+        self.agent_runner = AgentRunner(multi_mcp, api_key=api_key)  # Pass to AgentRunner
         self._conversation_turn = 0        
         self.console = Console()
         # Instrumentation callbacks (optionally set by API layer)

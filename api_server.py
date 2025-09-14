@@ -523,8 +523,9 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
     job = STATE.jobs[job_id]
     job['status'] = 'running'
     job['started_at'] = time.time()
-    # Cache profile for emission (optional key)
+    # Cache profile and API key for emission (optional key)
     job_profile = job.get('profile')
+    job_api_key = job.get('api_key')  # Get API key from job
 
     try:
         # Build file manifest
@@ -537,7 +538,7 @@ async def _run_agent_job(job_id: str, session_id: str, query: str, files: List[s
             session_entry = STATE.sessions.get(session_id)
             if session_entry is None:
                 # create new session
-                agent_loop = AgentLoop4(STATE.multi_mcp)
+                agent_loop = AgentLoop4(STATE.multi_mcp, api_key=job_api_key)  # Pass API key
                 # Attach instrumentation callbacks
                 def _step_start(step_id, agent, reads, writes, turn):
                     ws_send_event(session_id, 'step.start', {
@@ -718,7 +719,20 @@ def _validate_run_payload(data: Dict[str, Any]) -> Dict[str, Any]:
         abort(404, description='Invalid session_id')
     if not session_id:
         session_id = _generate_session_id()
-    return {'session_id': session_id, 'query': data['query'], 'files': files, 'profile': raw_profile, **({'profile_warning': warning} if warning else {})}
+    
+    # Extract API key
+    api_key = data.get('api_key')
+    if not api_key or not api_key.strip():
+        abort(400, description='Missing api_key')
+    
+    return {
+        'session_id': session_id, 
+        'query': data['query'], 
+        'files': files, 
+        'profile': raw_profile, 
+        'api_key': api_key.strip(),
+        **({'profile_warning': warning} if warning else {})
+    }
 
 # ----------------------- Flask Endpoints ----------------------------
 
@@ -768,6 +782,7 @@ def run_job():
     query = payload['query']
     files = payload['files']
     profile = payload['profile']
+    api_key = payload['api_key']  # Extract API key
     profile_warning = payload.get('profile_warning')
 
     job_id = str(uuid.uuid4())
@@ -776,8 +791,9 @@ def run_job():
         'session_id': session_id,
         'created_at': time.time(),
         'status': 'queued',
-        'profile': profile
-        }
+        'profile': profile,
+        'api_key': api_key  # Store API key in job
+    }
 
     async def schedule():
         # Attach profile to session context early so planner picks it up

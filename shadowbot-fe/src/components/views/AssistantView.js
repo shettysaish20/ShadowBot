@@ -740,7 +740,11 @@ export class AssistantView extends LitElement {
         return this.savedResponses.some(saved => saved.response === currentResponse);
     }
 
-    firstUpdated() { super.firstUpdated(); }
+    firstUpdated() {
+        super.firstUpdated();
+        this.updateResponseContent();
+    }
+
     updated(changedProperties) {
         super.updated(changedProperties);
         // Apply snippet HTML when present
@@ -753,6 +757,47 @@ export class AssistantView extends LitElement {
             }
         }
         // Full report iframe logic removed
+        
+        // Add your response content update logic here
+        if (changedProperties.has('responses') || changedProperties.has('currentResponseIndex')) {
+            if (changedProperties.has('currentResponseIndex')) {
+                this._lastAnimatedWordCount = 0;
+            }
+            this.updateResponseContent();
+        }
+    }
+
+    updateResponseContent() {
+        console.log('updateResponseContent called');
+        const container = this.shadowRoot.querySelector('#responseContainer');
+        if (container) {
+            const currentResponse = this.getCurrentResponse();
+            console.log('Current response:', currentResponse);
+            const renderedResponse = this.renderMarkdown(currentResponse);
+            console.log('Rendered response:', renderedResponse);
+            container.innerHTML = renderedResponse;
+            const words = container.querySelectorAll('[data-word]');
+            if (this.shouldAnimateResponse) {
+                for (let i = 0; i < this._lastAnimatedWordCount && i < words.length; i++) {
+                    words[i].classList.add('visible');
+                }
+                for (let i = this._lastAnimatedWordCount; i < words.length; i++) {
+                    words[i].classList.remove('visible');
+                    setTimeout(() => {
+                        words[i].classList.add('visible');
+                        if (i === words.length - 1) {
+                            this.dispatchEvent(new CustomEvent('response-animation-complete', { bubbles: true, composed: true }));
+                        }
+                    }, (i - this._lastAnimatedWordCount) * 100);
+                }
+                this._lastAnimatedWordCount = words.length;
+            } else {
+                words.forEach(word => word.classList.add('visible'));
+                this._lastAnimatedWordCount = words.length;
+            }
+        } else {
+            console.log('Response container not found');
+        }
     }
 
     // Add small header bar to show running job and profile
