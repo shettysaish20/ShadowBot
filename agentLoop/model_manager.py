@@ -14,7 +14,7 @@ MODELS_JSON = ROOT / "config" / "models.json"
 PROFILE_YAML = ROOT / "config" / "profiles.yaml"
 
 class ModelManager:
-    def __init__(self, model_name: str = None):
+    def __init__(self, model_name: str = None, api_key: str = None):
         self.config = json.loads(MODELS_JSON.read_text())
         self.profile = yaml.safe_load(PROFILE_YAML.read_text())
 
@@ -34,8 +34,16 @@ class ModelManager:
 
         # Initialize client based on model type
         if self.model_type == "gemini":
-            api_key = os.getenv("GEMINI_API_KEY")
-            self.client = genai.Client(api_key=api_key)
+            # Use provided api_key or fall back to environment variable
+            if api_key:
+                self.api_key = api_key
+            else:
+                self.api_key = os.getenv("GEMINI_API_KEY")
+            
+            if not self.api_key:
+                raise ValueError("Gemini API key is required. Provide it via api_key parameter or GEMINI_API_KEY environment variable.")
+            
+            self.client = genai.Client(api_key=self.api_key)
         # Add other model types as needed
 
     async def generate_text(self, prompt: str) -> str:

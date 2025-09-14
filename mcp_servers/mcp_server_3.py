@@ -21,8 +21,8 @@ import asyncio
 import os
 import random
 
-load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# load_dotenv()
+# client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 # Initialize FastMCP server
 mcp = FastMCP("ddg-search", timeout=20)
