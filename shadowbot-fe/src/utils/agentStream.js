@@ -485,6 +485,33 @@ export function getLastEvents(count = 50) {
 export function currentSessionId() { return _state.sessionId; }
 export function currentJobId() { return _state.jobId; }
 
+// Reset client-side session tracking and close any active websocket
+export function resetSession() {
+    try {
+        if (_state.ws) {
+            _state.closedManually = true;
+            try { _state.ws.close(); } catch (_) { /* ignore */ }
+        }
+    } catch (_) { /* ignore */ }
+    _state.ws = null;
+    _state.wsUrl = null;
+    _state.connected = false;
+    _state.connecting = false;
+    _state.sessionId = null;
+    _state.jobId = null;
+    _state.job = null;
+    _state.steps = {};
+    _state.report = null;
+    _state.errors = [];
+    _state.gap = null;
+    _state.eventLog = [];
+    _state.lastSeq = null;
+    _state.reconnectAttempts = 0;
+    _state.connectionStatus = 'idle';
+    _state.lastError = null;
+    _notify();
+}
+
 // Attach to window for debugging (optional)
 if (typeof window !== 'undefined') {
     window.shadowAgent = {
@@ -497,6 +524,8 @@ if (typeof window !== 'undefined') {
         forceDisconnect,
         setDebug,
         forceReconnect,
+        resetSession,
+        currentSessionId,
     };
 }
 
