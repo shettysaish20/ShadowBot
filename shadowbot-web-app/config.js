@@ -1,0 +1,9 @@
+// Update these values to publish real downloads and video
+window.SHADOWBOT_CONFIG = {
+  videoId: "", // YouTube video ID, e.g. "dQw4w9WgXcQ"
+  downloads: {
+    windows: "#", // e.g. https://cdn.example.com/shadowbot/Shadowbot-Setup-x64.exe
+    mac: "#",     // e.g. https://cdn.example.com/shadowbot/Shadowbot-macOS.dmg
+  },
+  github: "https://github.com/shettysaish20/ShadowBot",
+};

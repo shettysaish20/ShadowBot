@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shadowbot — Real‑time Interview & Support Copilot</title>
+  <meta name="description" content="Shadowbot is an undetectable AI overlay that helps you ace interviews and customer support calls with real‑time suggestions, answers, and notes." />
+  <link rel="icon" href="assets/icons/app-icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="config.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <img src="assets/icons/app-icon.svg" aria-hidden="true" alt="" class="brand-icon" />
+        <span class="brand-name">Shadowbot</span>
+      </div>
+      <nav class="nav">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#media">Screenshots</a>
+        <a href="#download" class="cta">Download</a>
+        <a href="#footer">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero / Interactive Intro -->
+    <section class="hero" aria-label="Intro">
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <h1>
+            The undetectable AI overlay for
+            <span class="typewriter" data-rotate='["Interviews","Customer Support","Sales Calls","Live Meetings"]'>Interviews</span>
+          </h1>
+          <p class="lead">Real‑time suggestions, instant answers, and smart notes — right on your screen, without being captured by screen recording tools.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" id="btn-win" href="#download">Install on Windows</a>
+            <a class="btn btn-secondary" id="btn-mac" href="#download">Install on Mac</a>
+          </div>
+          <div class="trust-row">
+            <span class="pill">Undetectable Overlay</span>
+            <span class="pill">Live Transcription</span>
+            <span class="pill">Interview & Support Profiles</span>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="floating-card" aria-hidden="true">
+            <div class="card-header">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </div>
+            <div class="card-body">
+              <p class="muted">Live suggestion</p>
+              <p>Use the STAR method: Situation, Task, Action, Result. Focus on measurable outcomes.</p>
+            </div>
+          </div>
+          <div class="halo"></div>
+        </div>
+      </div>
+      <button class="scroll-indicator" aria-label="Scroll to features" data-scroll="#features">↓</button>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="section">
+      <div class="container">
+        <h2>Everything you need, live on screen</h2>
+        <div class="grid features-grid">
+          <article class="feature">
+            <div class="feature-icon">🧠</div>
+            <h3>Real‑time AI Coaching</h3>
+            <p>Contextual tips and suggested answers as you speak. Stay calm, confident, and concise.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">🪟</div>
+            <h3>Transparent Overlay</h3>
+            <p>Always‑on‑top window that sits above any app. Toggle click‑through for zero interference.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">🎙️</div>
+            <h3>Live Transcription</h3>
+            <p>Captures audio and screen context to tailor responses to your conversation.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">🧩</div>
+            <h3>Multiple Profiles</h3>
+            <p>Switch between Interview, Customer Support, and Business Meeting modes.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">⚡</div>
+            <h3>Fast & Private</h3>
+            <p>Runs locally with minimal latency. Designed to avoid capture by screen recorders.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">🖥️</div>
+            <h3>Cross‑platform</h3>
+            <p>Available for Windows and macOS with simple installers. No coding required.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how" class="section alt">
+      <div class="container">
+        <h2>How it works</h2>
+        <ol class="steps">
+          <li>
+            <strong>Start Shadowbot</strong>
+            <p>Launch the app and choose your profile: Interview or Customer Support.</p>
+          </li>
+          <li>
+            <strong>Position the overlay</strong>
+            <p>Place the transparent window anywhere. Toggle click‑through when needed.</p>
+          </li>
+          <li>
+            <strong>Get live assistance</strong>
+            <p>Real‑time tips, answers, and notes adapt to your conversation and screen.</p>
+          </li>
+          <li>
+            <strong>Focus on the conversation</strong>
+            <p>Stay in flow. Shadowbot handles the thinking and phrasing.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Media -->
+    <section id="media" class="section">
+      <div class="container">
+        <h2>See Shadowbot in action</h2>
+        <div class="media-grid">
+          <div class="carousel" aria-label="App screenshots">
+            <button class="carousel-btn prev" aria-label="Previous screenshot">‹</button>
+            <div class="carousel-track">
+              <img src="assets/placeholders/screen-1.svg" alt="Screenshot 1 placeholder" />
+              <img src="assets/placeholders/screen-2.svg" alt="Screenshot 2 placeholder" />
+              <img src="assets/placeholders/screen-3.svg" alt="Screenshot 3 placeholder" />
+            </div>
+            <button class="carousel-btn next" aria-label="Next screenshot">›</button>
+          </div>
+          <div class="video">
+            <div class="video-embed" id="video-embed" data-video="">
+              <button class="video-play" aria-label="Play video">▶</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download -->
+    <section id="download" class="section alt">
+      <div class="container">
+        <h2>Download Shadowbot</h2>
+        <p class="muted">Simple installers. No developer setup required.</p>
+        <div class="download-grid">
+          <a class="download-card" id="dl-windows" href="#">
+            <img src="assets/icons/windows.svg" alt="Windows" />
+            <div>
+              <strong>Install on Windows</strong>
+              <p class="muted small" id="win-size">.exe installer</p>
+            </div>
+          </a>
+          <a class="download-card" id="dl-mac" href="#">
+            <img src="assets/icons/macos.svg" alt="macOS" />
+            <div>
+              <strong>Install on Mac</strong>
+              <p class="muted small" id="mac-size">.dmg installer</p>
+            </div>
+          </a>
+        </div>
+        <div class="links-row">
+          <a class="link" id="github-link" href="#" target="_blank" rel="noopener">View on GitHub →</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer" class="site-footer">
+    <div class="container footer-inner">
+      <div class="brand">
+        <img src="assets/icons/app-icon.svg" aria-hidden="true" alt="" class="brand-icon" />
+        <span class="brand-name">Shadowbot</span>
+      </div>
+      <div class="footer-links">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#download">Download</a>
+        <a id="footer-github" href="#" target="_blank" rel="noopener" aria-label="GitHub repository">GitHub</a>
+      </div>
+      <p class="fineprint">© <span id="year"></span> Shadowbot. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>
