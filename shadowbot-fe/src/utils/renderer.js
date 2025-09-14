@@ -830,6 +830,20 @@ const cheddar = {
         return contentProtection !== null ? contentProtection === 'true' : true;
     },
 
+    // Toggle content protection at runtime and persist preference
+    setContentProtection: async (enabled) => {
+        try {
+            const value = !!enabled;
+            localStorage.setItem('contentProtection', value ? 'true' : 'false');
+            // Notify main process to apply the new setting
+            await ipcRenderer.invoke('update-content-protection', value);
+            return true;
+        } catch (err) {
+            console.error('Failed to set content protection:', err);
+            return false;
+        }
+    },
+
     // Platform detection
     isLinux: isLinux,
     isMacOS: isMacOS,
