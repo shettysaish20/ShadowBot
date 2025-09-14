@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 import json 
 import inspect
+from typing import Optional
 
 # Create custom log levels for JSON blocks and prompts
 JSON_BLOCK = 25  # Between INFO (20) and WARNING (30)
@@ -51,7 +52,7 @@ def setup_logging(module_name: str):
 
     return logging.getLogger(module_name)
 
-def get_logger(module_name: str = None):
+def get_logger(module_name: Optional[str] = None):
     """
     Get a logger for the specified module or auto-detect the calling module.
     This eliminates the need to call setup_logging in every file.
@@ -67,7 +68,8 @@ def get_logger(module_name: str = None):
         except:
             module_name = 'unknown'
     
-    return setup_logging(module_name)
+    # Ensure a non-None module name is always provided
+    return setup_logging(module_name or 'unknown')
 
 def logger_step(logger, title: str, payload=None, symbol: str = "🟢"):
     """Log a step with optional payload in a clean, readable format"""
@@ -100,7 +102,7 @@ def logger_step(logger, title: str, payload=None, symbol: str = "🟢"):
         logger.error(f"Failed to format step: {e}")
         logger.info(f"{symbol} {title}: {payload}")
 
-def logger_error(logger, message: str, err: Exception = None):
+def logger_error(logger, message: str, err: Optional[Exception] = None):
     """Log an error with optional exception details in a clean, readable format"""
     try:
         # Create a separator
@@ -145,7 +147,11 @@ def logger_json_block(logger, message, data):
         separator = "=" * 80
         
         # Create the formatted JSON string
-        json_str = json.dumps(data, indent=2, sort_keys=False)
+        try:
+            json_str = json.dumps(data, indent=2, sort_keys=False)
+        except TypeError:
+            # Fallback for non-serializable types (e.g., CallToolResult)
+            json_str = json.dumps(data, indent=2, sort_keys=False, default=str)
         
         # Create the complete message
         complete_message = f"\n{separator}\n📌 {message}\n{separator}\n{json_str}\n{separator}\n"
@@ -209,12 +215,18 @@ def logger_code_block(logger, message, code, output=None):
             complete_message += f"{separator}\n"
             # Format output as JSON if it's a dictionary
             if isinstance(output, dict):
-                output_str = json.dumps(output, indent=2, sort_keys=True)
+                try:
+                    output_str = json.dumps(output, indent=2, sort_keys=True)
+                except TypeError:
+                    output_str = json.dumps(output, indent=2, sort_keys=True, default=str)
                 for line in output_str.split('\n'):
                     complete_message += f"  {line}\n"
             else:
-                complete_message += f"  {output}\n"
-        
+                try:
+                    complete_message += f"  {json.dumps(output, default=str)}\n"
+                except Exception:
+                    complete_message += f"  {str(output)}\n"
+
         complete_message += f"{separator}\n"
         
         # Log using the custom level

@@ -1,9 +1,9 @@
-# flow.py – SIMPLIFIED Output Chain System
+""" flow.py - SIMPLIFIED Output Chain System (clean + JSON-safe) """
 
 import networkx as nx
 import asyncio
 from agentLoop.contextManager import ExecutionContextManager
-from typing import Optional, Union, Any, Dict
+from typing import Optional
 from agentLoop.agents import AgentRunner
 from utils.utils import log_step, log_error
 from agentLoop.visualizer import ExecutionVisualizer
@@ -14,6 +14,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeEl
 from config.log_config import get_logger, logger_step, logger_json_block, logger_prompt, logger_code_block, logger_error
 
 logger = get_logger(__name__)
+
 
 def _build_output_meta(output):
     try:
@@ -38,6 +39,43 @@ def _build_output_meta(output):
     except Exception:
         return None
 
+
+def _json_safe(obj, _depth: int = 0, _max_depth: int = 6):
+    """Recursively convert objects to JSON-serializable structures."""
+    if _depth > _max_depth:
+        return str(obj)
+    try:
+        if obj is None or isinstance(obj, (str, int, float, bool)):
+            return obj
+        if isinstance(obj, dict):
+            return {str(_json_safe(k, _depth + 1, _max_depth)): _json_safe(v, _depth + 1, _max_depth) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple, set)):
+            return [_json_safe(v, _depth + 1, _max_depth) for v in (list(obj) if not isinstance(obj, list) else obj)]
+        if isinstance(obj, Path):
+            return str(obj)
+        if isinstance(obj, (bytes, bytearray)):
+            try:
+                return obj.decode("utf-8", errors="replace")
+            except Exception:
+                return str(obj)
+        for meth in ("to_dict", "model_dump", "dict"):
+            if hasattr(obj, meth) and callable(getattr(obj, meth)):
+                try:
+                    return _json_safe(getattr(obj, meth)(), _depth + 1, _max_depth)
+                except Exception:
+                    pass
+        if hasattr(obj, "__dict__"):
+            try:
+                raw = {k: getattr(obj, k) for k in dir(obj) if not k.startswith("_") and not callable(getattr(obj, k, None))}
+                if len(raw) <= 20:
+                    return _json_safe(raw, _depth + 1, _max_depth)
+            except Exception:
+                pass
+        return str(obj)
+    except Exception:
+        return str(obj)
+
+
 class AgentLoop4:
     def __init__(self, multi_mcp, strategy="conservative"):
         self.multi_mcp = multi_mcp
@@ -52,21 +90,20 @@ class AgentLoop4:
         self.on_step_end = None
 
     async def _show_timer_animation(self, duration=30, message="Waiting before calling Gemini"):
-            """Show an animated timer for the specified duration"""
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-                TimeElapsedColumn(),
-                console=self.console,
-                transient=True
-            ) as progress:
-                task = progress.add_task(f"[cyan]{message}...", total=duration)
-                
-                for i in range(duration):
-                    progress.update(task, advance=1)
-                    await asyncio.sleep(1)
+        """Show an animated timer for the specified duration"""
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeElapsedColumn(),
+            console=self.console,
+            transient=True,
+        ) as progress:
+            task = progress.add_task(f"[cyan]{message}...", total=duration)
+            for _ in range(duration):
+                progress.update(task, advance=1)
+                await asyncio.sleep(1)
 
     async def run(self, query, file_manifest, profile, uploaded_files, context: Optional[ExecutionContextManager] = None):
         """Run planning + execution. If an existing context is supplied, extend the current session.
@@ -87,7 +124,6 @@ class AgentLoop4:
         file_profiles = {}
         if uploaded_files:
             file_list_text = "\n".join([f"- File {i+1}: {Path(f).name} (full path: {f})" for i, f in enumerate(uploaded_files)])
-            
             grounded_instruction = f"""Profile and summarize each file's structure, columns, content type.
 
             IMPORTANT: Use these EXACT file names in your response:
@@ -101,10 +137,10 @@ class AgentLoop4:
                     "task": "profile_files",
                     "files": uploaded_files,
                     "instruction": grounded_instruction,
-                    "writes": ["file_profiles"]
-                }, 
+                    "writes": ["file_profiles"],
+                },
                 step_id="file_profiling",
-                iteration=1
+                iteration=1,
             )
             if file_result["success"]:
                 file_profiles = file_result["output"]
@@ -113,8 +149,8 @@ class AgentLoop4:
         # Determine active profile (persist in context.graph)
         active_profile = profile
         if is_continuation and context is not None:
-            active_profile = context.plan_graph.graph.get('planner_profile')
-            
+            active_profile = context.plan_graph.graph.get("planner_profile")
+
         # planner_input always carries profile (may be None -> runner will default)
         planner_input = {
             "original_query": query,
@@ -123,9 +159,9 @@ class AgentLoop4:
             "file_profiles": file_profiles,
             "mode": "mid_session" if is_continuation else "initial",
             "conversation_turn": self._conversation_turn,
-            **({"profile": active_profile} if active_profile else {})
+            **({"profile": active_profile} if active_profile else {}),
         }
-        
+
         if is_continuation and context is not None:
             # Provide existing plan graph + used IDs + recent queries for context
             existing_nodes = [n for n in context.plan_graph.nodes if n != "ROOT"]
@@ -148,13 +184,11 @@ class AgentLoop4:
             planner_input["previous_queries"] = context.plan_graph.graph.get("queries", [])
 
         plan_result = await self.agent_runner.run_agent("PlannerAgent", planner_input)
-
         if not plan_result["success"]:
             raise RuntimeError(f"Planning failed: {plan_result['error']}")
+        if "plan_graph" not in plan_result["output"]:
+            raise RuntimeError("PlannerAgent output missing 'plan_graph' key")
 
-        if 'plan_graph' not in plan_result['output']:
-            raise RuntimeError(f"PlannerAgent output missing 'plan_graph' key")
-        
         plan_graph = plan_result["output"]["plan_graph"]
 
         if not is_continuation:
@@ -233,7 +267,7 @@ class AgentLoop4:
                     **sanitized,
                     status=node_status,
                     output=None, error=None, cost=0.0,
-                    start_time=None, end_time=None, execution_time=0.0
+                    start_time=None, end_time=None, execution_time=0.0,
                 )
         # Add edges
         for edge in new_plan_graph.get("edges", []):
@@ -335,6 +369,7 @@ class AgentLoop4:
         
         # SIMPLE: Get raw outputs from previous steps
         inputs = context.get_inputs(step_data.get("reads", []))
+        inputs = _json_safe(inputs)
         
         # Build agent input
         def build_agent_input(instruction=None, previous_output=None):
@@ -349,7 +384,7 @@ class AgentLoop4:
                     "session_id": context.plan_graph.graph['session_id'],
                     "file_manifest": context.plan_graph.graph['file_manifest']
                 },
-                **({"previous_output": previous_output} if previous_output else {})
+                **({"previous_output": _json_safe(previous_output)} if previous_output else {}),
             }
 
         # Execute first iteration
@@ -381,47 +416,39 @@ class AgentLoop4:
                 # Handle execution results
                 if execution_result["status"] == "success":
                     log_step(f"✅ {step_id}: Code execution succeeded", symbol="🎉")
-                    
-                    # Extract the actual result from code execution
                     code_output = execution_result.get("code_results", {}).get("result", {})
                     
                     # Combine agent output with code execution results
-                    combined_output = {
-                        **result["output"].get("output", {}),  # Agent's direct output
-                        **code_output  # Code execution results
-                    }
+                    combined_output = _json_safe({
+                        **(result["output"].get("output", {}) or {}),
+                        **(code_output or {}),
+                    })
                     
                     # Update result with combined output
                     result["output"] = combined_output
-                    
                 elif execution_result["status"] == "partial_failure":
                     log_step(f"⚠️ {step_id}: Code execution partial failure", symbol="⚠️")
-                    
-                    # Try to extract any successful results
                     code_output = execution_result.get("code_results", {}).get("result", {})
                     if code_output:
-                        combined_output = {
-                            **result["output"].get("output", {}),
-                            **code_output
-                        }
+                        combined_output = _json_safe({
+                            **(result["output"].get("output", {}) or {}),
+                            **(code_output or {}),
+                        })
                         result["output"] = combined_output
                     else:
-                        # Mark as failed
                         result["success"] = False
                         result["error"] = f"Code execution failed: {execution_result.get('error', 'Unknown error')}"
-                        
                 else:
                     log_step(f"❌ {step_id}: Code execution failed", symbol="🚨")
                     result["success"] = False
                     result["error"] = f"Code execution failed: {execution_result.get('error', 'Unknown error')}"
-                    
             except Exception as e:
                 log_step(f"💥 {step_id}: Code execution exception: {e}", symbol="❌")
                 result["success"] = False
                 result["error"] = f"Code execution exception: {str(e)}"
-        
+
         # Handle call_self if needed
-        if result["success"] and result["output"].get("call_self"):
+        if result["success"] and isinstance(result.get("output"), dict) and result["output"].get("call_self"):
             log_step(f"🔄 CALL_SELF triggered for {step_id}", symbol="🔄")
             
             # Second iteration with previous output
@@ -452,10 +479,10 @@ class AgentLoop4:
                     
                     if execution_result["status"] == "success":
                         code_output = execution_result.get("code_results", {}).get("result", {})
-                        combined_output = {
-                            **second_result["output"].get("output", {}),
-                            **code_output
-                        }
+                        combined_output = _json_safe({
+                            **(second_result["output"].get("output", {}) or {}),
+                            **(code_output or {}),
+                        })
                         second_result["output"] = combined_output
                     else:
                         second_result["success"] = False
