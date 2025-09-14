@@ -232,6 +232,19 @@ async def execute_python_code_variant(
 
     # Build safe execution context
     file_utils = create_file_utilities(session_id)
+    # Normalize inputs for downstream usage
+    inputs_dict = inputs or {}
+
+    # Provide a resilient session_context for generated code that expects it
+    default_session_context = {
+        "session_id": session_id,
+        "output_dir": str(output_dir),
+        "file_manifest": inputs_dict.get("file_manifest") or [],
+        "created_at": datetime.now().isoformat(),
+    }
+    provided_session_context = inputs_dict.get("session_context")
+    session_context_obj = provided_session_context or default_session_context
+
     safe_globals: Dict[str, Any] = {
         **SAFE_BUILTINS,
         **tool_funcs,
@@ -239,11 +252,16 @@ async def execute_python_code_variant(
         "multi_mcp": multi_mcp,
         "session_id": session_id,
         "output_dir": str(output_dir),
-        "inputs": inputs or {},
+        "inputs": inputs_dict,
+        # Commonly-referenced alias for session metadata expected by prompts/codegen
+        "session_context": session_context_obj,
+        "context": session_context_obj,
         "log_step": log_step,
     }
-    if inputs:
-        safe_globals.update(inputs)
+    if inputs_dict:
+        # Expose provided inputs as globals for convenience, without overriding session_context alias
+        # (session_context already set above; keep that value stable)
+        safe_globals.update({k: v for k, v in inputs_dict.items() if k != "session_context"})
 
     def _evenize_before_uUxX(text: str) -> str:
         """Ensure an even number of backslashes immediately before u/U/x to avoid unicode escapes.
