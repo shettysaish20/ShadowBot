@@ -2,12 +2,14 @@ const { BrowserWindow, globalShortcut, ipcMain, screen } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('os');
-const { applyStealthMeasures, startTitleRandomization } = require('./stealthFeatures');
+const { applyStealthMeasures, reverseStealthMeasures, startTitleRandomization, stopTitleRandomization } = require('./stealthFeatures');
 
 let mouseEventsIgnored = false;
 let windowResizing = false;
 let resizeAnimation = null;
 const RESIZE_ANIMATION_DURATION = 500; // milliseconds
+let stealthEnabled = true;
+let titleRandomizationInterval = null;
 
 function ensureDataDirectories() {
     const homeDir = os.homedir();
@@ -87,7 +89,7 @@ function createWindow(sendToRenderer, geminiSessionRef, randomNames = null) {
     applyStealthMeasures(mainWindow);
 
     // Start periodic title randomization for additional stealth
-    startTitleRandomization(mainWindow);
+    titleRandomizationInterval = startTitleRandomization(mainWindow);
 
     // After window is created, check for layout preference and resize if needed
     mainWindow.webContents.once('dom-ready', () => {
@@ -237,6 +239,75 @@ function updateGlobalShortcuts(keybinds, mainWindow, sendToRenderer, geminiSessi
         } catch (error) {
             console.error(`Failed to register toggleClickThrough (${keybinds.toggleClickThrough}):`, error);
         }
+    }
+
+    // Register stealth mode toggle (invisible hotkey): Ctrl+Shift+\ (Win/Linux) or Cmd+Shift+\ (macOS)
+    const isMac = process.platform === 'darwin';
+    const toggleStealthKey = isMac ? 'Cmd+Shift+\\' : 'Ctrl+Shift+\\';
+    try {
+        globalShortcut.register(toggleStealthKey, async () => {
+            try {
+                stealthEnabled = !stealthEnabled;
+                if (stealthEnabled) {
+                    applyStealthMeasures(mainWindow);
+                    if (!titleRandomizationInterval) {
+                        titleRandomizationInterval = startTitleRandomization(mainWindow);
+                    }
+                    // Persist content protection via renderer setting
+                    await mainWindow.webContents.executeJavaScript('cheddar.setContentProtection(true)');
+                } else {
+                    reverseStealthMeasures(mainWindow);
+                    if (titleRandomizationInterval) {
+                        stopTitleRandomization(titleRandomizationInterval);
+                        titleRandomizationInterval = null;
+                    }
+                    await mainWindow.webContents.executeJavaScript('cheddar.setContentProtection(false)');
+                }
+                console.log('Stealth mode toggled:', stealthEnabled);
+            } catch (err) {
+                console.error('Error toggling stealth mode:', err);
+            }
+        });
+        console.log(`Registered toggleStealth: ${toggleStealthKey}`);
+    } catch (error) {
+        console.error(`Failed to register toggleStealth (${toggleStealthKey}):`, error);
+    }
+
+    // Register app screenshot hotkey: Ctrl+Shift+S (Win/Linux) or Cmd+Shift+S (macOS)
+    const screenshotKey = isMac ? 'Cmd+Shift+S' : 'Ctrl+Shift+S';
+    try {
+        globalShortcut.register(screenshotKey, async () => {
+            console.log('App screenshot shortcut triggered');
+            try {
+                // Temporarily disable content protection to allow capture
+                const wasProtected = await mainWindow.webContents.executeJavaScript('cheddar.getContentProtection()');
+                await mainWindow.webContents.executeJavaScript('cheddar.setContentProtection(false)');
+
+                // Use Electron capturePage to capture just this window
+                const image = await mainWindow.capturePage();
+                const buffer = image.toJPEG(90);
+
+                // Save to project tmp dir
+                const path = require('node:path');
+                const fs = require('node:fs');
+                const projectTmpDir = path.join(__dirname, 'tmp');
+                if (!fs.existsSync(projectTmpDir)) fs.mkdirSync(projectTmpDir, { recursive: true });
+                const filename = `app_screenshot_${Date.now()}.jpg`;
+                const filePath = path.join(projectTmpDir, filename);
+                fs.writeFileSync(filePath, buffer);
+                console.log('📸 App screenshot saved at:', filePath);
+
+                // Restore previous content protection state
+                if (wasProtected) {
+                    await mainWindow.webContents.executeJavaScript('cheddar.setContentProtection(true)');
+                }
+            } catch (err) {
+                console.error('Error capturing app screenshot:', err);
+            }
+        });
+        console.log(`Registered app screenshot: ${screenshotKey}`);
+    } catch (error) {
+        console.error(`Failed to register app screenshot (${screenshotKey}):`, error);
     }
 
     // Register next step shortcut (either starts session or takes screenshot based on view)

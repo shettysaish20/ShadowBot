@@ -1,6 +1,15 @@
 // stealthFeatures.js - Additional stealth features for process hiding
 
 const { getCurrentRandomDisplayName } = require('./processNames');
+const { app } = require('electron');
+
+// Preserve original app name and default user agent to allow restoring
+const ORIGINAL_APP_NAME = (() => {
+    try { return app.getName(); } catch { return 'ShadowBot'; }
+})();
+const DEFAULT_USER_AGENT = (() => {
+    try { return app.userAgentFallback || 'Mozilla/5.0'; } catch { return 'Mozilla/5.0'; }
+})();
 
 /**
  * Apply additional stealth measures to the Electron application
@@ -65,6 +74,57 @@ function applyStealthMeasures(mainWindow) {
 }
 
 /**
+ * Reverse stealth measures applied earlier
+ * @param {BrowserWindow} mainWindow
+ */
+function reverseStealthMeasures(mainWindow) {
+    console.log('Reversing stealth measures...');
+
+    // Show in taskbar on Windows
+    if (process.platform === 'win32') {
+        try {
+            mainWindow.setSkipTaskbar(false);
+            console.log('Shown in Windows taskbar');
+        } catch (error) {
+            console.warn('Could not show in taskbar:', error.message);
+        }
+    }
+
+    // Show in Mission Control on macOS
+    if (process.platform === 'darwin') {
+        try {
+            if (typeof mainWindow.setHiddenInMissionControl === 'function') {
+                mainWindow.setHiddenInMissionControl(false);
+                console.log('Shown in macOS Mission Control');
+            }
+        } catch (error) {
+            console.warn('Could not show in Mission Control:', error.message);
+        }
+        try {
+            app.setName(ORIGINAL_APP_NAME);
+        } catch (error) {
+            console.warn('Could not restore app name:', error.message);
+        }
+    }
+
+    // Disable content protection to allow screenshots/capture
+    try {
+        mainWindow.setContentProtection(false);
+        console.log('Content protection disabled');
+    } catch (error) {
+        console.warn('Could not disable content protection:', error.message);
+    }
+
+    // Restore default user agent
+    try {
+        mainWindow.webContents.setUserAgent(DEFAULT_USER_AGENT);
+        console.log('Restored default user agent');
+    } catch (error) {
+        console.warn('Could not restore user agent:', error.message);
+    }
+}
+
+/**
  * Periodically randomize window title to avoid detection
  * @param {BrowserWindow} mainWindow - The main application window
  */
@@ -109,6 +169,16 @@ function startTitleRandomization(mainWindow) {
 }
 
 /**
+ * Stop title randomization interval
+ * @param {NodeJS.Timeout} interval
+ */
+function stopTitleRandomization(interval) {
+    try {
+        if (interval) clearInterval(interval);
+    } catch (_) { }
+}
+
+/**
  * Anti-debugging and anti-analysis measures
  */
 function applyAntiAnalysisMeasures() {
@@ -129,5 +199,7 @@ function applyAntiAnalysisMeasures() {
 module.exports = {
     applyStealthMeasures,
     startTitleRandomization,
+    stopTitleRandomization,
+    reverseStealthMeasures,
     applyAntiAnalysisMeasures,
 };
