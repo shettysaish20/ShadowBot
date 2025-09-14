@@ -9,6 +9,9 @@ export class MainView extends LitElement {
             user-select: none;
         }
 
+        /* Ensure widths include padding/borders to avoid visual overlap */
+        *, *::before, *::after { box-sizing: border-box; }
+
         .welcome {
             font-size: 24px;
             margin-bottom: 8px;
@@ -17,13 +20,28 @@ export class MainView extends LitElement {
         }
 
         .input-group {
-            display: flex;
-            gap: 12px;
+            display: grid;
+            grid-template-columns: 1fr 220px; /* input | buttons */
+            column-gap: 16px; /* small buffer for input focus ring */
+            align-items: center;
             margin-bottom: 20px;
         }
 
-        .input-group input {
-            flex: 1;
+        /* Keep API key input width constant by reserving space for side buttons */
+        .api-input {
+            width: 100%;
+            min-width: 0; /* allow shrink within grid without overflow */
+            position: relative;
+            z-index: 0;
+        }
+
+        .input-buttons {
+            display: flex;
+            flex-direction: column; /* stack to fit within narrow right-side area */
+            gap: 8px;
+            width: 100%; /* fill grid's right column */
+            position: relative;
+            z-index: 1; /* ensure input border/outline never paints over buttons */
         }
 
         input {
@@ -83,6 +101,8 @@ export class MainView extends LitElement {
             display: flex;
             align-items: center;
             gap: 6px;
+            width: 100%; /* Fit within the right-side container */
+            justify-content: center;
         }
 
         .start-button:hover {
@@ -145,19 +165,25 @@ export class MainView extends LitElement {
 
     static properties = {
         onStart: { type: Function },
+        onContinue: { type: Function },
+        onStartNew: { type: Function },
         onAPIKeyHelp: { type: Function },
         isInitializing: { type: Boolean },
         onLayoutModeChange: { type: Function },
         showApiKeyError: { type: Boolean },
+        hasPreviousSession: { type: Boolean },
     };
 
     constructor() {
         super();
-        this.onStart = () => {};
-        this.onAPIKeyHelp = () => {};
+        this.onStart = () => { };
+        this.onContinue = () => { };
+        this.onStartNew = () => { };
+        this.onAPIKeyHelp = () => { };
         this.isInitializing = false;
-        this.onLayoutModeChange = () => {};
+        this.onLayoutModeChange = () => { };
         this.showApiKeyError = false;
+        this.hasPreviousSession = false;
         this.boundKeydownHandler = this.handleKeydown.bind(this);
     }
 
@@ -185,11 +211,18 @@ export class MainView extends LitElement {
 
     handleKeydown(e) {
         const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-        const isStartShortcut = isMac ? e.metaKey && e.key === 'Enter' : e.ctrlKey && e.key === 'Enter';
-
-        if (isStartShortcut) {
+        const isEnter = e.key === 'Enter';
+        const mod = isMac ? e.metaKey : e.ctrlKey;
+        // Ctrl/Cmd+Enter
+        if (mod && isEnter && !e.shiftKey) {
             e.preventDefault();
-            this.handleStartClick();
+            // If we have a previous session, default shortcut continues previous; otherwise start
+            if (this.hasPreviousSession) this.handleContinueClick(); else this.handleStartClick();
+        }
+        // Ctrl/Cmd+Shift+Enter = Start New Session
+        if (mod && e.shiftKey && isEnter) {
+            e.preventDefault();
+            this.handleStartNewClick();
         }
     }
 
@@ -206,6 +239,16 @@ export class MainView extends LitElement {
             return;
         }
         this.onStart();
+    }
+
+    handleContinueClick() {
+        if (this.isInitializing) return;
+        this.onContinue();
+    }
+
+    handleStartNewClick() {
+        if (this.isInitializing) return;
+        this.onStartNew();
     }
 
     handleAPIKeyHelpClick() {
@@ -281,21 +324,51 @@ export class MainView extends LitElement {
         }
     }
 
+    getContinueButtonText() {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const cmdIcon = html`<svg width="14px" height="14px" viewBox="0 0 24 24" stroke-width="2" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 6V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M15 6V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M9 6C9 4.34315 7.65685 3 6 3C4.34315 3 3 4.34315 3 6C3 7.65685 4.34315 9 6 9H18C19.6569 9 21 7.65685 21 6C21 4.34315 19.6569 3 18 3C16.3431 3 15 4.34315 15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M9 18C9 19.6569 7.65685 21 6 21C4.34315 21 3 19.6569 3 18C3 16.3431 4.34315 15 6 15H18C19.6569 15 21 16.3431 21 18C21 19.6569 19.6569 21 18 21C16.3431 21 15 19.6569 15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+        const enterIcon = html`<svg width="14px" height="14px" stroke-width="2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.25 19.25L6.75 15.75L10.25 12.25" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M6.75 15.75H12.75C14.9591 15.75 16.75 13.9591 16.75 11.75V4.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+        return isMac ? html`Continue Previous <span class="shortcut-icons">${cmdIcon}${enterIcon}</span>` : html`Continue Previous <span class="shortcut-icons">Ctrl${enterIcon}</span>`;
+    }
+
+    getStartNewButtonText() {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const cmdIcon = html`<svg width="14px" height="14px" viewBox="0 0 24 24" stroke-width="2" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 6V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M15 6V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M9 6C9 4.34315 7.65685 3 6 3C4.34315 3 3 4.34315 3 6C3 7.65685 4.34315 9 6 9H18C19.6569 9 21 7.65685 21 6C21 4.34315 19.6569 3 18 3C16.3431 3 15 4.34315 15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M9 18C9 19.6569 7.65685 21 6 21C4.34315 21 3 19.6569 3 18C3 16.3431 4.34315 15 6 15H18C19.6569 15 21 16.3431 21 18C21 19.6569 19.6569 21 18 21C16.3431 21 15 19.6569 15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+        const enterIcon = html`<svg width="14px" height="14px" stroke-width="2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.25 19.25L6.75 15.75L10.25 12.25" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M6.75 15.75H12.75C14.9591 15.75 16.75 13.9591 16.75 11.75V4.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+        const plus = html`<span style="margin:0 4px;">+</span>`;
+        return isMac
+            ? html`Start New Session <span class="shortcut-icons">${cmdIcon}${plus}${enterIcon}</span>`
+            : html`Start New Session <span class="shortcut-icons">Ctrl+Shift${enterIcon}</span>`;
+    }
+
     render() {
         return html`
             <div class="welcome">Welcome</div>
 
             <div class="input-group">
                 <input
+                    class="api-input ${this.showApiKeyError ? 'api-key-error' : ''}"
                     type="password"
                     placeholder="Enter your Gemini API Key"
                     .value=${localStorage.getItem('apiKey') || ''}
                     @input=${this.handleInput}
-                    class="${this.showApiKeyError ? 'api-key-error' : ''}"
                 />
-                <button @click=${this.handleStartClick} class="start-button ${this.isInitializing ? 'initializing' : ''}">
-                    ${this.getStartButtonText()}
-                </button>
+                <div class="input-buttons">
+                    ${this.hasPreviousSession
+                ? html`
+                            <button @click=${this.handleContinueClick} class="start-button ${this.isInitializing ? 'initializing' : ''}">
+                                ${this.getContinueButtonText()}
+                            </button>
+                            <button @click=${this.handleStartNewClick} class="start-button ${this.isInitializing ? 'initializing' : ''}">
+                                ${this.getStartNewButtonText()}
+                            </button>
+                        `
+                : html`
+                            <button @click=${this.handleStartClick} class="start-button ${this.isInitializing ? 'initializing' : ''}">
+                                ${this.getStartButtonText()}
+                            </button>
+                        `}
+                </div>
             </div>
             <p class="description">
                 dont have an api key?

@@ -485,6 +485,33 @@ export function getLastEvents(count = 50) {
 export function currentSessionId() { return _state.sessionId; }
 export function currentJobId() { return _state.jobId; }
 
+// Reset client-side session tracking and close any active websocket
+export function resetSession() {
+    try {
+        if (_state.ws) {
+            _state.closedManually = true;
+            try { _state.ws.close(); } catch (_) { /* ignore */ }
+        }
+    } catch (_) { /* ignore */ }
+    _state.ws = null;
+    _state.wsUrl = null;
+    _state.connected = false;
+    _state.connecting = false;
+    _state.sessionId = null;
+    _state.jobId = null;
+    _state.job = null;
+    _state.steps = {};
+    _state.report = null;
+    _state.errors = [];
+    _state.gap = null;
+    _state.eventLog = [];
+    _state.lastSeq = null;
+    _state.reconnectAttempts = 0;
+    _state.connectionStatus = 'idle';
+    _state.lastError = null;
+    _notify();
+}
+
 // Attach to window for debugging (optional)
 if (typeof window !== 'undefined') {
     window.shadowAgent = {
@@ -497,5 +524,57 @@ if (typeof window !== 'undefined') {
         forceDisconnect,
         setDebug,
         forceReconnect,
+        resetSession,
+        currentSessionId,
     };
+}
+
+// -------------------- Session Rehydration / Attach --------------------
+// Adopt an existing historic session (rehydrated via backend) without starting a new job.
+// Expected payload shape from /sessions/<id>/rehydrate:
+// { session_id, status:'rehydrated'|'already_loaded', original_query, queries, summary, report? }
+export async function rehydrateSession(sessionId) {
+    if (!sessionId) throw new Error('sessionId required');
+    // Ensure backend started
+    await ensureBackendStarted();
+    const url = `${_state.baseUrl}/sessions/${encodeURIComponent(sessionId)}/rehydrate`;
+    const r = await fetch(url, { method: 'POST' });
+    if (!r.ok) throw new Error(`rehydrate failed: ${r.status}`);
+    const data = await r.json();
+    attachSession(data);
+    return data;
+}
+
+export function attachSession(data) {
+    if (!data || !data.session_id) throw new Error('Invalid rehydrate payload');
+    // Close any existing WS (fresh subscription will replay buffer if any)
+    if (_state.ws) { try { _state.closedManually = true; _state.ws.close(); } catch (_) { } }
+    _state.sessionId = data.session_id;
+    _state.jobId = null; // no active job yet
+    _state.job = null;   // job state resets until user sends a new query
+    _state.steps = {};   // steps will repopulate on future runs; existing historic steps visible via history endpoint
+    // If report snippet provided, store it
+    if (data.report && data.report.snippet) {
+        _state.report = {
+            snippet: data.report.snippet,
+            snippet_truncated: data.report.snippet_truncated,
+            size: data.report.size,
+            sanitized: data.report.sanitized,
+            restored: true
+        };
+    } else {
+        _state.report = null;
+    }
+    // Reset sequencing so WS events start fresh
+    _state.lastSeq = null;
+    _state.errors = [];
+    _state.gap = null;
+    _state.eventLog = [];
+    _notify();
+    _connectWebSocket();
+}
+
+// Attach for debugging
+if (typeof window !== 'undefined' && window.shadowAgent) {
+    Object.assign(window.shadowAgent, { rehydrateSession, attachSession });
 }

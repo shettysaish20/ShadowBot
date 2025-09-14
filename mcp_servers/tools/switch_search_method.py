@@ -82,7 +82,7 @@ async def use_playwright_search(query: str, engine: str) -> List[str]:
     urls = []
     async with async_playwright() as p:
         # Detect server environment via SSH
-        is_server = os.getenv('SSH_CLIENT') is not None or os.getenv('SSH_TTY') is not None
+        is_server = True #os.getenv('SSH_CLIENT') is not None or os.getenv('SSH_TTY') is not None
         headless_mode = is_server
 
         browser = await p.chromium.launch(headless=headless_mode)

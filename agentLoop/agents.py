@@ -194,6 +194,7 @@ class AgentRunner:
                 # log_step(f"📁 File strategy: {strategy} for {len(all_files)} files")
                 
                 # Initialize model manager for Files API uploads
+                ## TODO: Create this for different API key clients
                 model_manager = ModelManager(agent_config.get("model", "gemini-2.0-flash"))
                 
                 # Process files based on strategy
@@ -212,6 +213,7 @@ class AgentRunner:
                         # log_step(f"📤 Uploaded {file_path} to Files API")
             else:
                 # Initialize model manager for text-only requests
+                ## TODO: Create this for different API key clients
                 model_manager = ModelManager(agent_config.get("model", "gemini-2.0-flash"))
 
             # Load system prompt

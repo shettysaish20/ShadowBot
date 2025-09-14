@@ -34,6 +34,7 @@ class ModelManager:
 
         # Initialize client based on model type
         if self.model_type == "gemini":
+            # TODO: This API key should come from frontend
             api_key = os.getenv("GEMINI_API_KEY")
             self.client = genai.Client(api_key=api_key)
         # Add other model types as needed
