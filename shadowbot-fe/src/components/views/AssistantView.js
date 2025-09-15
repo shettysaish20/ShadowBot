@@ -769,7 +769,9 @@ export class AssistantView extends LitElement {
 
     updateResponseContent() {
         console.log('updateResponseContent called');
-        const container = this.shadowRoot.querySelector('#responseContainer');
+        // Render live audio/text updates into the dedicated live region, so they
+        // do not overwrite the final report when present.
+        const container = this.shadowRoot.querySelector('#liveResponse') || this.shadowRoot.querySelector('#responseContainer');
         if (container) {
             const currentResponse = this.getCurrentResponse();
             console.log('Current response:', currentResponse);
@@ -818,7 +820,7 @@ export class AssistantView extends LitElement {
         return html`
             <div style="position:absolute;top:6px;right:8px;font-size:11px;display:flex;align-items:center;gap:6px;z-index:10;">
                 <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid ${color};border-radius:12px;color:${color};background:rgba(255,255,255,0.05);">
-                    <span style="width:8px;height:8px;border-ra dius:50%;background:${color};"></span>
+                    <span style="width:8px;height:8px;border-radius:50%;background:${color};"></span>
                     WS ${status}${reconnectInfo}
                 </span>
                 ${status === 'error' || status === 'closed' ? html`<button style="background:transparent;border:1px solid ${color};color:${color};border-radius:10px;padding:2px 6px;font-size:10px;cursor:pointer;" @click=${() => window.shadowAgent && window.shadowAgent.forceReconnect()}>Retry</button>` : ''}
@@ -852,11 +854,9 @@ export class AssistantView extends LitElement {
                 ` : ''}
                 ${job.state && !running ? html`<div style="font-size:12px;color:var(--description-color);margin-bottom:8px;">Job state: ${job.state}</div>` : ''}
                 ${report ? html`<div class="final-report"><h4>Final Report</h4>
-                    <div id="finalReportSnippet" style="font-size:12px;line-height:1.4;white-space:normal;"></div>
+                    <div id="finalReportSnippet" style="line-height:1.6;white-space:normal;"></div>
                 </div>`: ''}
-                ${report ? html`<div class="final-report"><h4>Final Report</h4>
-                    <div id="finalReportSnippet" style="font-size:12px;line-height:1.4;white-space:normal;"></div>
-                </div>`: ''}
+                <div id="liveResponse"></div>
                 <!-- Response rendering temporarily disabled to avoid DOM conflicts -->
             </div>
             <div class="text-input-container">
