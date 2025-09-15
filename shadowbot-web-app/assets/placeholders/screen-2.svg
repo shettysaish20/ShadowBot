@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" fill="none">
+  <rect width="1200" height="720" rx="24" fill="#0f1520"/>
+  <rect x="40" y="40" width="1120" height="640" rx="14" fill="#121a27" stroke="#1e293b"/>
+  <rect x="72" y="80" width="860" height="420" rx="12" fill="#0b0f14" stroke="#1e293b"/>
+  <rect x="944" y="80" width="216" height="420" rx="12" fill="#0b0f14" stroke="#1e293b"/>
+  <text x="960" y="120" fill="#7c9cff" font-size="24" font-family="Inter, Arial">STAR answer</text>
+  <text x="960" y="160" fill="#9fb0c3" font-size="18" font-family="Inter, Arial">Situation → Task → Action → Result</text>
+</svg>

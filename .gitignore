@@ -66,7 +66,6 @@ yarn-error.log*
 *.pyc 
 *.zip
 *.zip
-*.svg
 *.pem
 
 # Virtual environments
