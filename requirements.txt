@@ -35,3 +35,4 @@ flask-sock>=0.7.0
 matplotlib>=3.10.3
 cssutils>=2.11.1
 websocket-client>=1.8.0
+pytesseract>=0.3.10
