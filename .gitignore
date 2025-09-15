@@ -65,9 +65,7 @@ yarn-error.log*
 /memory/
 *.pyc 
 *.zip
-*.css
 *.zip
-*.svg
 *.pem
 
 # Virtual environments
