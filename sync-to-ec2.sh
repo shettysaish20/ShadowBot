@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Configuration
-INSTANCE_ID="i-0d9954ca7c78fcbef"
-KEY_FILE="C:/Users/Rohan/Documents/myapp-ubuntu-key.pem"
+INSTANCE_ID="i-0fdfdd4d64edcee3c"
+KEY_FILE="D:\Projects\AWS_creds\saish-erav3.pem"
 IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
 echo "📡 Found IP: $IP"
 

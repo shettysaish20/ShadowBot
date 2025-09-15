@@ -6,12 +6,12 @@ const { getSystemPrompt } = require('./prompts');
 const http = require('http');
 
 // Backend URL (local)
-const BACKEND_API_HOST = 'localhost';
-const BACKEND_API_PORT = 8000;
+// const BACKEND_API_HOST = 'localhost';
+// const BACKEND_API_PORT = 8000;
 
 // Backend URL (AWS)
-// const BACKEND_API_HOST = '3.6.40.89';
-// const BACKEND_API_PORT = 5000;
+const BACKEND_API_HOST = '3.6.90.197';
+const BACKEND_API_PORT = 8000;
 
 const BACKEND_API_BASE_URL = `http://${BACKEND_API_HOST}:${BACKEND_API_PORT}`;
 

@@ -2,10 +2,10 @@
 // Plain JS helper for listing and loading historic sessions persisted on backend.
 
 // Backend URL (local)
-let _baseUrl = 'http://localhost:8000';
+// let _baseUrl = 'http://localhost:8000';
 
 // Backend URL (AWS)
-// let _baseUrl = 'http://3.6.40.89:5000'
+let _baseUrl = 'http://3.6.90.197:8000'
 
 export function setHistoryBaseUrl(url) {
   if (url) _baseUrl = url.replace(/\/$/, '');
