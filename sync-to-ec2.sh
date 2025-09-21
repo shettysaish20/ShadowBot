@@ -12,13 +12,17 @@ echo "📦 Syncing code to EC2 using scp..."
 echo "📁 Creating archive..."
 tar --exclude-from='.syncignore' -czf temp-sync.tar.gz .
 
+# Ensure remote directory exists before upload
+echo "📁 Ensuring ~/my-app exists on EC2..."
+ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no ubuntu@$IP "mkdir -p ~/my-app"
+
 # Copy archive to EC2
 echo "📤 Uploading to EC2..."
-scp -i "$KEY_FILE" -o StrictHostKeyChecking=no temp-sync.tar.gz ubuntu@$IP:~/
+scp -i "$KEY_FILE" -o StrictHostKeyChecking=no temp-sync.tar.gz ubuntu@$IP:~/my-app/
 
 # Extract on EC2 and cleanup
 echo "📂 Extracting on EC2..."
-ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no ubuntu@$IP "cd ~/my-app && tar -xzf ~/temp-sync.tar.gz && rm ~/temp-sync.tar.gz"
+ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no ubuntu@$IP "cd ~/my-app && tar -xzf temp-sync.tar.gz && rm temp-sync.tar.gz"
 
 # Cleanup local temp file
 rm temp-sync.tar.gz
