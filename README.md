@@ -220,6 +220,8 @@ which ffmpeg   # should print /usr/bin/ffmpeg
 
 ### 6.1 Architecture
 
+<img width="5365" height="2025" alt="IMG_20250921_220552_647" src="https://github.com/user-attachments/assets/a3c92229-f153-4ed8-a6a7-03eff766bfbb" />
+
 ### Frontend (User Interface – macOS / Windows)
 
 - Overlay Transparent App Screen
