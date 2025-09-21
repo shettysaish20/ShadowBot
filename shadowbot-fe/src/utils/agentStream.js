@@ -7,7 +7,7 @@
 // const DEFAULT_BASE_URL = 'http://localhost:8000';
 
 // Backend URL (AWS)
-const DEFAULT_BASE_URL = 'http://3.6.90.197:8000'
+const DEFAULT_BASE_URL = 'http://15.207.110.70:8000'
 
 // Internal state (single active session per desktop client)
 const _state = {

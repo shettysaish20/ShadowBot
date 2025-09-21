@@ -10,7 +10,7 @@ const http = require('http');
 // const BACKEND_API_PORT = 8000;
 
 // Backend URL (AWS)
-const BACKEND_API_HOST = '3.6.90.197';
+const BACKEND_API_HOST = '15.207.110.70';
 const BACKEND_API_PORT = 8000;
 
 const BACKEND_API_BASE_URL = `http://${BACKEND_API_HOST}:${BACKEND_API_PORT}`;
