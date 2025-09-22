@@ -1,15 +1,52 @@
-# ShadowBot
+<p align="center">
+    <img src="shadowbot-web-app/assets/icons/app-icon.png" alt="ShadowBot logo" width="320" />
+</p>
+
+<p align="center">
+    <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" /></a>
+    <a href="https://networkx.org/"><img alt="NetworkX" src="https://img.shields.io/badge/NetworkX-6F42C1?style=for-the-badge&logoColor=white" /></a>
+    <a href="https://faiss.ai/"><img alt="FAISS" src="https://img.shields.io/badge/FAISS-2F3A8C?style=for-the-badge&logoColor=white" /></a>
+    <a href="https://playwright.dev/"><img alt="Playwright" src="https://img.shields.io/badge/Playwright-5B6ACB?style=for-the-badge&logo=playwright&logoColor=white" /></a>
+    <a href="https://nodejs.org/"><img alt="Node.js" src="https://img.shields.io/badge/Node.js-5C6AC4?style=for-the-badge&logo=nodedotjs&logoColor=white" /></a>
+    <a href="https://aws.amazon.com/"><img alt="AWS" src="https://img.shields.io/badge/AWS-4C51BF?style=for-the-badge&logo=amazonaws&logoColor=white" /></a>
+  
+</p>
 
 **The Undetectable AI Overlay for Interviews & Meetings**
 
 Real-time suggestions, smart notes, and instant help—all displayed via a transparent overlay, so you can focus on your conversation without breaking flow.
+
+Capstone Project for EAG-V1 Course by [The School of AI](https://github.com/theschoolofai)
+
+## Team Members
+
+1. Saish Shetty
+2. Himank Jain
+3. Soma Korada
+4. Deepjyoti Saha
 
 ## Supported Platforms
 
 - Windows
 - macOS
 
----
+Download now: [www.shadowbot.com](https://shettysaish20.github.io/ShadowBot/)
+
+## Table of Contents
+
+[1. Project Overview](#1-project-overview)  
+[2. Application Features](#2-application-features)  
+[3. Functionalities](#3-functionalities)  
+[4. Tech Stack](#4-tech-stack)  
+[5. Installation & Setup](#5-installation--setup)  
+[6. Runtime Flow (High Level)](#6-runtime-flow-high-level)  
+[7. Architecture & Directory Guide](#7-architecture--directory-guide)  
+[8. Agents & Profiles](#8-agents--profiles)  
+[9. Prompts & Prompt Engineering](#9-prompts--prompt-engineering)  
+[10. Extending the System](#10-extending-the-system)  
+[11. Roadmap (Potential Enhancements)](#11-roadmap-potential-enhancements)  
+[12. Contributing](#12-contributing)
+
 ## 1. Project Overview
 
 - A graph‑first execution engine (NetworkX) for explicit reasoning flow visualization & introspection.
@@ -21,22 +58,15 @@ Real-time suggestions, smart notes, and instant help—all displayed via a trans
 
 The system is designed for research, rapid experimentation, and production‑grade extensibility: you can add tools, plug in new LLM providers, introduce new agent roles, or alter the execution graph with predictable impact.
 
----
-## 2. Application Features - 
+## 2. Application Features 
 
-- Real-time AI Coaching — Get contextual tips and suggested answers as you speak. Helps with phrasing, structure, staying concise. 
+- **Real-time AI Coaching** — Get contextual tips and suggested answers as you speak. Helps with phrasing, structure, staying concise. 
+- **Transparent Overlay** — Always-on-top window that sits above any app. Option to toggle “click-through” so the overlay doesn’t intercept clicks. 
+- **Live Transcription** — Captures audio and some screen context to make suggestions more relevant to your actual conversation. 
+- **Multiple Profiles / Modes** — Switch between different contexts such as Interview, Customer Support, Business Meeting etc., so the assistance is tailored. 
+- **Fast & Private** — Designed for low latency, with a focus on running locally (as much as possible) to protect privacy. 
+- **Cross-Platform** — Supports Windows and macOS, with easy installers. No coding needed to get started.
 
-- Transparent Overlay — Always-on-top window that sits above any app. Option to toggle “click-through” so the overlay doesn’t intercept clicks. 
-
-- Live Transcription — Captures audio and some screen context to make suggestions more relevant to your actual conversation. 
-
-- Multiple Profiles / Modes — Switch between different contexts such as Interview, Customer Support, Business Meeting etc., so the assistance is tailored. 
-
-- Fast & Private — Designed for low latency, with a focus on running locally (as much as possible) to protect privacy. 
-
-- Cross-Platform — Supports Windows and macOS, with easy installers. No coding needed to get started.
-
----
 ## 3. Functionalities
 
 ### Reasoning & Orchestration
@@ -74,8 +104,7 @@ The system is designed for research, rapid experimentation, and production‑gra
 - Add tool: expose via MCP server, register in server config YAML.
 - Support alternative model providers by extending `ModelManager`.
 
----
-## 3. Tech Stack
+## 4. Tech Stack
 ### Backend
 - Python (3.11+ recommended)
 - FastAPI / Uvicorn (API server) *(current dynamic key entrypoint)*
@@ -100,23 +129,22 @@ Two lightweight front-end surfaces (for demonstration / extension):
 - YAML configurations for agents, profiles, MCP servers.
 - JSON model registry.
 
----
-## 4. Installation & Setup
+## 5. Installation & Setup
 
-### 4.1 Local Setup
+### 5.1 Local Setup
 
-#### 4.1.1 Prerequisites
+#### 5.1.1 Prerequisites
 - Python 3.11+
 - Node.js (if building any front-end assets)
 - (Optional) Ollama installed & models pulled if using local LLMs.
 
-#### 4.1.2 Clone
+#### 5.1.2 Clone
 ```
 git clone <repo-url>
 cd ShadowBot
 ```
 
-#### 4.1.3 Python Environment
+#### 5.1.3 Python Environment
 Using `uv` (recommended for speed):
 ```
 uv sync
@@ -128,22 +156,22 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### 4.1.4 Environment Variables
+#### 5.1.4 Environment Variables
 Create `.env` (optional if supplying runtime API key):
 ```
 GEMINI_API_KEY=your_key_here   # can be omitted if using /start injection
 ```
 Other optional variables can be added as you extend tooling.
 
-#### 4.1.5 Launching MCP Servers
+#### 5.1.5 Launching MCP Servers
 The system spins them up via `MultiMCP`. Ensure `config/mcp_server_config.yaml` lists enabled servers. You normally only run the main entrypoint; servers are initialized programmatically.
 
-#### 4.1.6 Starting the CLI Orchestrator
+#### 5.1.6 Starting the CLI Orchestrator
 ```
 uv run main.py
 ```
 
-#### 4.1.7 Starting the API Server (Dynamic Gemini Key)
+#### 5.1.7 Starting the API Server (Dynamic Gemini Key)
 ```
 uv run api_server.py
 ```
@@ -159,7 +187,7 @@ Content-Type: application/json
 
 If you omit `api_key`, server falls back to environment variable `GEMINI_API_KEY`.
 
-#### 4.1.8 Front-End (Optional)
+#### 5.1.8 Front-End (Optional)
 
 `shadowbot-fe/` (if build scripts configured):
 ```
@@ -167,15 +195,15 @@ cd shadowbot-fe
 npm install
 npm run dev   # or build
 ```
-### 4.2 AWS Cloud Setup
+### 5.2 AWS Cloud Setup
 
-#### 4.2.1 First run sync-to-ec2.sh locally in git-bash (ensure you have added the correct EC2 instance ID)
+#### 5.2.1 First run sync-to-ec2.sh locally in git-bash (ensure you have added the correct EC2 instance ID)
 ```
 cd ShadowBot
 ./sync-to-ec2.sh
 ```
 
-#### 4.2.2 Create python environment and install requirements
+#### 5.2.2 Create python environment and install requirements
 ```
 cd my-app
 sudo apt install python3-venv
@@ -185,27 +213,26 @@ source env/scripts/activate
 python -m pip install -r requirements.txt
 ```
 
-#### 4.2.3 Playwright installation
+#### 5.2.3 Playwright installation
 ```
 sudo apt-get update
 playwright install-deps
 playwright install
 ```
 
-#### 4.2.4 ffmpeg installation
+#### 5.2.4 ffmpeg installation
 ```
 sudo apt-get install -y ffmpeg
 ffmpeg -version
 which ffmpeg   # should print /usr/bin/ffmpeg
 ```
 
-#### 4.2.5 Starting application
+#### 5.2.5 Starting application
 ```
 (env) ubuntu@ip-172-31-6-119:~/my-app$ python api_server.py
 ```
 
----
-## 5. Runtime Flow (High Level)
+## 6. Runtime Flow (High Level)
 1. User supplies files & a query (CLI) or hits API.
 2. `AgentLoop4` constructs / extends a session context (graph + memory).
 3. Planner agent drafts an execution plan.
@@ -215,10 +242,9 @@ which ffmpeg   # should print /usr/bin/ffmpeg
 7. Scheduler or Decision nodes finalize routing or termination.
 8. Graph + outputs serialized / analyzable.
 
----
-## 6. Architecture & Directory Guide
+## 7. Architecture & Directory Guide
 
-### 6.1 Architecture
+### 7.1 Architecture
 
 <img width="5365" height="2025" alt="IMG_20250921_220552_647" src="https://github.com/user-attachments/assets/a3c92229-f153-4ed8-a6a7-03eff766bfbb" />
 
@@ -293,7 +319,7 @@ S3 (AWS Cloud Storage)
 
 This supports reproducibility, debugging, and compliance.
 
-### 6.2 Directory Guide
+### 7.2 Directory Guide
 ```
 agentLoop/            Core loop, agents, model manager, graph logic
 mcp_servers/          Individual MCP server implementations & multiplexer
@@ -318,7 +344,6 @@ Key Files:
 - `config/profiles.yaml` – Persona / domain profiles.
 - `config/models.json` – Model registry & env key mappings.
 
----
 ## 8. Agents & Profiles
 ### 8.1 Agent Roles (Representative)
 - Planner: Decomposes user intent into steps.
@@ -343,14 +368,12 @@ Selection Mechanism:
 - Determined at session start or by agent logic (depending on flow design).
 - Can be extended by adding a new profile YAML entry and referencing it in agent configuration.
 
----
 ## 9. Prompts & Prompt Engineering
 Prompts in `prompts/` are modular text templates used by each agent type. Enhancement guidelines:
 - Keep role clarity explicit.
 - Preserve delimiters for parser stability.
 - Version prompts when modifying (add backup copy) for reproducibility.
 
----
 ## 10. Extending the System
 ### Add a New Agent
 1. Implement logic in `agentLoop/agents.py`.
@@ -368,7 +391,6 @@ Prompts in `prompts/` are modular text templates used by each agent type. Enhanc
 2. Update `config/models.json` with provider id + env var mapping.
 3. Reference new model id in `agent_config.yaml`.
 
----
 ## 11. Roadmap (Potential Enhancements)
 - Hot model/key rotation without process restart.
 - Unified web control panel for session graphs & tool telemetry.
@@ -378,11 +400,8 @@ Prompts in `prompts/` are modular text templates used by each agent type. Enhanc
 - Structured evaluation harness (BLEU / factuality / latency metrics).
 - Prompt versioning & automatic diff impact testing.
 
----
 ## 12. Contributing
 1. Fork & create a feature branch.
 2. Add or update configuration as needed (agents, profiles, models).
 3. Provide test script or scenario.
 4. Submit PR with concise rationale + architectural impacts.
-
----
