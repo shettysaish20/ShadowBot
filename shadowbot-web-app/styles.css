@@ -50,15 +50,16 @@ img{max-width:100%;display:block}
 .steps li{position:relative;counter-increment:step;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 16px 16px 68px}
 .steps li::before{content:counter(step, decimal-leading-zero) ".";position:absolute;left:18px;top:16px;color:var(--muted);font-weight:700}
 /* Media */
-.media-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
-.carousel{position:relative;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.carousel-track{display:flex;transition:transform .5s ease}
-.carousel img{width:100%;flex:0 0 100%}
+.media-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.carousel{position:relative;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;aspect-ratio:16/9;box-shadow:var(--shadow)}
+.carousel-track{display:flex;height:100%;transition:transform .5s ease}
+.carousel img{width:100%;height:100%;flex:0 0 100%}
 .carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:50%;cursor:pointer}
 .carousel-btn.prev{left:10px}
 .carousel-btn.next{right:10px}
-.video{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.video-embed{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg, #0a1120, #121b32)}
+.video{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;box-shadow:var(--shadow)}
+.video-embed{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg, #0a1120, #121b32);width:100%}
+.video-embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
 .video-play{position:absolute;inset:0;margin:auto;width:72px;height:72px;border-radius:50%;border:none;background:radial-gradient(circle at 35% 35%, #ffffff, #d6c8ff);color:#0a1220;font-size:26px;cursor:pointer;box-shadow:var(--shadow)}
 /* Download */
 .download-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}
