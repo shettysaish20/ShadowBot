@@ -34,18 +34,18 @@ Download now: [www.shadowbot.com](https://shettysaish20.github.io/ShadowBot/)
 
 ## Table of Contents
 
-[1. Project Overview](#1-project-overview)  
-[2. Application Features](#2-application-features)  
-[3. Functionalities](#3-functionalities)  
-[4. Tech Stack](#4-tech-stack)  
-[5. Installation & Setup](#5-installation--setup)  
-[6. Runtime Flow (High Level)](#6-runtime-flow-high-level)  
-[7. Architecture & Directory Guide](#7-architecture--directory-guide)  
-[8. Agents & Profiles](#8-agents--profiles)  
-[9. Prompts & Prompt Engineering](#9-prompts--prompt-engineering)  
-[10. Extending the System](#10-extending-the-system)  
-[11. Roadmap (Potential Enhancements)](#11-roadmap-potential-enhancements)  
-[12. Contributing](#12-contributing)
+1. [Project Overview](#1-project-overview)  
+2. [Application Features](#2-application-features)  
+3. [Functionalities](#3-functionalities)  
+4. [Tech Stack](#4-tech-stack)  
+5. [Installation & Setup](#5-installation--setup)  
+6. [Runtime Flow (High Level)](#6-runtime-flow-high-level)  
+7. [Architecture & Directory Guide](#7-architecture--directory-guide)  
+8. [Agents & Profiles](#8-agents--profiles)  
+9. [Prompts & Prompt Engineering](#9-prompts--prompt-engineering)  
+10. [Extending the System](#10-extending-the-system)  
+11. [Roadmap (Potential Enhancements)](#11-roadmap-potential-enhancements)  
+12. [Contributing](#12-contributing)
 
 ## 1. Project Overview
 
