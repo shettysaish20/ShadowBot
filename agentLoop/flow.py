@@ -120,16 +120,18 @@ class AgentLoop4:
         is_continuation = context is not None
 
         # Phase 1: (Re)Profile only newly provided files (simple approach)
-        # Phase 1: File Profiling (if files exist)
+        # Phase 1: File Profiling - extract all the text and data from the files initi
         file_profiles = {}
         if uploaded_files:
             file_list_text = "\n".join([f"- File {i+1}: {Path(f).name} (full path: {f})" for i, f in enumerate(uploaded_files)])
-            grounded_instruction = f"""Profile and summarize each file's structure, columns, content type.
+            grounded_instruction = f"""
+            You task is to extract all the text and data from the attched files and summarize each file's structure, columns, content type and complete content.
 
             IMPORTANT: Use these EXACT file names in your response:
             {file_list_text}
 
-            Profile each file separately and return details."""
+            Profile each file separately and return details.
+            """
 
             file_result = await self.agent_runner.run_agent(
                 "DistillerAgent",
