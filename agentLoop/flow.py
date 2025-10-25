@@ -120,7 +120,7 @@ class AgentLoop4:
         is_continuation = context is not None
 
         # Phase 1: (Re)Profile only newly provided files (simple approach)
-        # Phase 1: File Profiling - extract all the text and data from the files initi
+        # Phase 1: File Profiling - extract all the text and data from the files
         file_profiles = {}
         if uploaded_files:
             file_list_text = "\n".join([f"- File {i+1}: {Path(f).name} (full path: {f})" for i, f in enumerate(uploaded_files)])
