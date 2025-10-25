@@ -134,7 +134,7 @@ class AgentLoop4:
             """
 
             file_result = await self.agent_runner.run_agent(
-                "DistillerAgent",
+                "ExtractorAgent",
                 {
                     "task": "profile_files",
                     "files": uploaded_files,
