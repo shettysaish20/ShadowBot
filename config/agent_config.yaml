@@ -54,3 +54,8 @@ agents:
     prompt_file: "prompts/scheduler_prompt.txt"
     model: "gemini"
     mcp_servers: []
+
+  ExtractorAgent:
+    prompt_file: "prompts/extractor_prompt.txt"
+    model: "gemini"
+    mcp_servers: []
